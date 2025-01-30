@@ -438,7 +438,7 @@ void ReadFromRemote::addLazyPipe(Pipes & pipes, const ClusterProxy::SelectStream
             my_scalars = scalars, my_external_tables = external_tables,
             my_stage = stage, local_delay = shard.local_delay,
             add_agg_info, add_totals, add_extremes, async_read, async_query_sending,
-            my_is_remote_function = is_remote_function]() mutable
+            my_is_remote_function = is_remote_function,
             query_tree = shard.query_tree, planner_context = shard.planner_context,
             pushed_down_filters]() mutable
         -> QueryPipelineBuilder
