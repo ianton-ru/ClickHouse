@@ -148,4 +148,18 @@ std::string RelativePathWithMetadata::CommandInTaskResponse::to_string() const
     return oss.str();
 }
 
+
+void RelativePathWithMetadata::loadMetadata(ObjectStoragePtr object_storage)
+{
+    if (!metadata)
+    {
+        const auto & path = isArchive() ? getPathToArchive() : getPath();
+
+        if (query_settings.ignore_non_existent_file)
+            metadata = object_storage->tryGetObjectMetadata(path);
+        else
+            metadata = object_storage->getObjectMetadata(path);
+    }
+}
+
 }
