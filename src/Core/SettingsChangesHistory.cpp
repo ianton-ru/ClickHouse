@@ -236,6 +236,10 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"function_date_trunc_return_type_behavior", 1, 0, "Change the result type for dateTrunc function for DateTime64/Date32 arguments to DateTime64/Date32 regardless of time unit to get correct result for negative values"},
             {"enable_scopes_for_with_statement", true, true, "New setting for backward compatibility with the old analyzer."},
             /// Release closed. Please use 25.5
+            // Altinity Antalya modifications atop of 25.2
+            {"object_storage_cluster", "", "", "New setting"},
+            {"object_storage_max_nodes", 0, 0, "New setting"},
+            {"use_object_storage_list_objects_cache", true, false, "New setting."},
         });
         addSettingsChanges(settings_changes_history, "25.3",
         {
