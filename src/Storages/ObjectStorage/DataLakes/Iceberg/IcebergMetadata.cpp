@@ -952,7 +952,7 @@ ColumnMapperPtr IcebergMetadata::getColumnMapperForObject(ObjectInfoPtr object_i
     if (!iceberg_object_info)
         return nullptr;
     auto configuration_ptr = configuration.lock();
-    if (Poco::toLower(configuration_ptr->format) != "parquet")
+    if (Poco::toLower(configuration_ptr->getFormat()) != "parquet")
         return nullptr;
 
     return persistent_components.schema_processor->getColumnMapperById(iceberg_object_info->underlying_format_read_schema_id);
@@ -961,7 +961,7 @@ ColumnMapperPtr IcebergMetadata::getColumnMapperForObject(ObjectInfoPtr object_i
 ColumnMapperPtr IcebergMetadata::getColumnMapperForCurrentSchema() const
 {
     auto configuration_ptr = configuration.lock();
-    if (Poco::toLower(configuration_ptr->format) != "parquet")
+    if (Poco::toLower(configuration_ptr->getFormat()) != "parquet")
         return nullptr;
     SharedLockGuard lock(mutex);
     return persistent_components.schema_processor->getColumnMapperById(relevant_snapshot_schema_id);
