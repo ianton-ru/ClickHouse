@@ -4,7 +4,12 @@
 #include <Common/Logger.h>
 #include <Interpreters/Cluster.h>
 #include <Storages/ObjectStorage/StorageObjectStorageSource.h>
+#include <Storages/ObjectStorageQueue/ObjectStorageQueueSource.h>
+
+#include <Poco/Timestamp.h>
+
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 #include <mutex>
 #include <memory>
@@ -18,7 +23,8 @@ public:
     StorageObjectStorageStableTaskDistributor(
         std::shared_ptr<IObjectIterator> iterator_,
         std::vector<std::string> && ids_of_nodes_,
-        bool send_over_whole_archive_);
+        bool send_over_whole_archive_,
+        uint64_t lock_object_storage_task_distribution_ms_);
 
     ObjectInfoPtr getNextTask(size_t number_of_current_replica);
 
@@ -28,13 +34,18 @@ private:
     ObjectInfoPtr getMatchingFileFromIterator(size_t number_of_current_replica);
     ObjectInfoPtr getAnyUnprocessedFile(size_t number_of_current_replica);
 
+    void saveLastNodeActivity(size_t number_of_current_replica);
+
     const std::shared_ptr<IObjectIterator> iterator;
     const bool send_over_whole_archive;
 
     std::vector<std::vector<ObjectInfoPtr>> connection_to_files;
-    std::unordered_map<std::string, ObjectInfoPtr> unprocessed_files;
+    std::unordered_map<std::string, std::pair<ObjectInfoPtr, size_t>> unprocessed_files;
 
     std::vector<std::string> ids_of_nodes;
+
+    std::unordered_map<size_t, Poco::Timestamp> last_node_activity;
+    Poco::Timestamp::TimeDiff lock_object_storage_task_distribution_us;
 
     std::mutex mutex;
     bool iterator_exhausted = false;
