@@ -191,6 +191,36 @@ void StorageObjectStorageCluster::updateQueryToSendIfNeeded(
     }
 }
 
+class TaskDistributor : public TaskIterator
+{
+public:
+    TaskDistributor(std::shared_ptr<IObjectIterator> iterator,
+        std::vector<std::string> && ids_of_hosts,
+        bool send_over_whole_archive,
+        uint64_t lock_object_storage_task_distribution_ms,
+        ContextPtr context_
+        )
+        : task_distributor(iterator, std::move(ids_of_hosts), send_over_whole_archive, lock_object_storage_task_distribution_ms)
+        , context(context_) {}
+    ~TaskDistributor() override = default;
+    bool supportRerunTask() const override { return true; }
+    void rescheduleTasksFromReplica(size_t number_of_current_replica) override
+    {
+        task_distributor.rescheduleTasksFromReplica(number_of_current_replica);
+    }
+
+    ClusterFunctionReadTaskResponsePtr operator()(size_t number_of_current_replica) const override
+    {
+        auto task = task_distributor.getNextTask(number_of_current_replica);
+        if (task)
+            return std::make_shared<ClusterFunctionReadTaskResponse>(std::move(task), context);
+        return std::make_shared<ClusterFunctionReadTaskResponse>();
+    }
+
+private:
+    mutable StorageObjectStorageStableTaskDistributor task_distributor;
+    ContextPtr context;
+};
 
 RemoteQueryExecutor::Extension StorageObjectStorageCluster::getTaskIteratorExtension(
     const ActionsDAG::Node * predicate,
@@ -238,20 +268,11 @@ RemoteQueryExecutor::Extension StorageObjectStorageCluster::getTaskIteratorExten
             lock_object_storage_task_distribution_ms_max
         );
 
-    auto task_distributor = std::make_shared<StorageObjectStorageStableTaskDistributor>(
-        iterator,
+    auto callback = std::make_shared<TaskDistributor>(iterator,
         std::move(ids_of_hosts),
         /* send_over_whole_archive */!local_context->getSettingsRef()[Setting::cluster_function_process_archive_on_multiple_nodes],
-        lock_object_storage_task_distribution_ms);
-
-    auto callback = std::make_shared<TaskIterator>(
-        [task_distributor, local_context](size_t number_of_current_replica) mutable -> ClusterFunctionReadTaskResponsePtr
-        {
-            auto task = task_distributor->getNextTask(number_of_current_replica);
-            if (task)
-                return std::make_shared<ClusterFunctionReadTaskResponse>(std::move(task), local_context);
-            return std::make_shared<ClusterFunctionReadTaskResponse>();
-        });
+        lock_object_storage_task_distribution_ms,
+        local_context);
 
     return RemoteQueryExecutor::Extension{ .task_iterator = std::move(callback) };
 }
