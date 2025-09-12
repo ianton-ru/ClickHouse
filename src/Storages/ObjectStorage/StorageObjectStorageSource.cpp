@@ -1067,6 +1067,12 @@ StorageObjectStorageSource::ReadTaskIterator::ReadTaskIterator(
     , is_archive(is_archive_)
     , object_storage(object_storage_)
 {
+    if (!getContext()->isSwarmModeEnabled())
+    {
+        LOG_DEBUG(getLogger("StorageObjectStorageSource"), "STOP SWARM MODE called, stop getting new tasks");
+        return;
+    }
+
     ThreadPool pool(
         CurrentMetrics::StorageObjectStorageThreads,
         CurrentMetrics::StorageObjectStorageThreadsActive,
@@ -1102,6 +1108,12 @@ StorageObjectStorage::ObjectInfoPtr StorageObjectStorageSource::ReadTaskIterator
     ObjectInfoPtr object_info;
     if (current_index >= buffer.size())
     {
+        if (!getContext()->isSwarmModeEnabled())
+        {
+            LOG_DEBUG(getLogger("StorageObjectStorageSource"), "STOP SWARM MODE called, stop getting new tasks");
+            return nullptr;
+        }
+
         auto task = callback();
         if (!task || task->isEmpty())
             return nullptr;
