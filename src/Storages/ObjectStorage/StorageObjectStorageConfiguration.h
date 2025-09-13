@@ -13,6 +13,7 @@
 #include <Storages/MutationCommands.h>
 #include <Storages/AlterCommands.h>
 #include <Storages/IStorage.h>
+#include <Storages/ObjectStorage/ObjectStorageFilePathGenerator.h>
 
 namespace DB
 {
@@ -94,6 +95,8 @@ public:
     const Path & getPathForRead() const;
     // Path used for writing, it should not be globbed and might contain a partition key
     Path getPathForWrite(const std::string & partition_id = "") const;
+
+    Path getPathForWrite(const std::string & partition_id, const std::string & filename_override) const;
 
     void setPathForRead(const Path & path)
     {
@@ -254,6 +257,8 @@ private:
     // Path used for reading, by default it is the same as `getRawPath`
     // When using `partition_strategy=hive`, a recursive reading pattern will be appended `'table_root/**.parquet'
     Path read_path;
+
+    std::shared_ptr<ObjectStorageFilePathGenerator> file_path_generator;
 };
 
 using StorageObjectStorageConfigurationPtr = std::shared_ptr<StorageObjectStorageConfiguration>;

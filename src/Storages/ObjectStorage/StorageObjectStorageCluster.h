@@ -33,6 +33,14 @@ public:
     std::optional<UInt64> totalRows(ContextPtr query_context) const override;
     std::optional<UInt64> totalBytes(ContextPtr query_context) const override;
 
+    bool supportsImport() const override;
+
+    SinkToStoragePtr import(
+        const std::string & /* file_name */,
+        Block & /* block_with_partition_values */,
+        ContextPtr /* context */,
+        std::function<void(ImportStats)> /* part_log */) override;
+
 private:
     void updateQueryToSendIfNeeded(
         ASTPtr & query,

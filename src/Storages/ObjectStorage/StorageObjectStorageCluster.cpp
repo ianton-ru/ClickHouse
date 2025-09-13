@@ -100,6 +100,11 @@ StorageObjectStorageCluster::StorageObjectStorageCluster(
     metadata.setColumns(columns);
     metadata.setConstraints(constraints_);
 
+    if (configuration->getPartitionStrategy())
+    {
+        metadata.partition_key = configuration->getPartitionStrategy()->getPartitionKeyDescription();
+    }
+
     setVirtuals(VirtualColumnUtils::getVirtualsForFileLikeStorage(metadata.columns));
     setInMemoryMetadata(metadata);
 }
@@ -240,5 +245,25 @@ RemoteQueryExecutor::Extension StorageObjectStorageCluster::getTaskIteratorExten
 
     return RemoteQueryExecutor::Extension{ .task_iterator = std::move(callback) };
 }
+
+bool StorageObjectStorageCluster::supportsImport() const
+{
+    if (pure_storage)
+        return pure_storage->supportsImport();
+    return false;
+}
+
+SinkToStoragePtr StorageObjectStorageCluster::import(
+    const std::string & file_name,
+    Block & block_with_partition_values,
+    ContextPtr context,
+    std::function<void(ImportStats)> part_log)
+{
+    if (pure_storage)
+        return pure_storage->import(file_name, block_with_partition_values, context, part_log);
+    
+    return IStorageCluster::import(file_name, block_with_partition_values, context, part_log);
+}
+
 
 }
