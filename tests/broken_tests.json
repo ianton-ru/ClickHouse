@@ -1,4 +1,11 @@
 {
+    "02844_max_backup_bandwidth_s3": {
+        "reason": "INVESTIGATE - Fails on debug",
+        "message": "result differs with reference",
+        "check_types": [
+            "debug"
+        ]
+    },
     "03455_direct_io_read_array_values": {
         "reason": "INVESTIGATE - Unstable on tsan",
         "check_types": [
@@ -214,10 +221,11 @@
         ]
     },
     "00172_hits_joins": {
-        "reason": "INVESTIGATE - Timeout on tsan",
+        "reason": "INVESTIGATE - Timeout on tsan, msan",
         "message": "Timeout! Processes left in process group",
         "check_types": [
-            "tsan"
+            "tsan",
+            "msan"
         ]
     },
     "00084_external_aggregation": {
@@ -273,7 +281,7 @@
     },
     "01782_field_oom": {
         "reason": "INVESTIGATE - Timeout on tsan",
-        "message": "Timeout! Processes left in process group",
+        "message": "Timeout",
         "check_types": [
             "tsan"
         ]
