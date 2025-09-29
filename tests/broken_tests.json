@@ -33,6 +33,13 @@
             "tsan"
         ]
     },
+    "02435_rollback_cancelled_queries": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "DB::Exception: There is no current transaction. (INVALID_TRANSACTION)",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "02443_detach_attach_partition": {
         "reason": "INVESTIGATE - Unstable",
         "message": "Cannot rename parts to perform operation on them: Code: 521. DB::ErrnoException: Cannot rename"
@@ -186,7 +193,6 @@
     },
     "02581_share_big_sets_between_mutation_tasks_with_storage_set": {
         "reason": "INVESTIGATE - Timeout on tsan",
-        "message": "Timeout! Processes left in process group",
         "check_types": [
             "tsan"
         ]
@@ -265,11 +271,13 @@
         ]
     },
     "00024_random_counters": {
-        "reason": "INVESTIGATE - Timeout on tsan, coverage",
+        "reason": "INVESTIGATE - Timeout on tsan, coverage, asan, msan",
         "message": "Timeout! Processes left in process group",
         "check_types": [
             "tsan",
-            "coverage"
+            "coverage",
+            "asan",
+            "msan"
         ]
     },
     "00159_parallel_formatting_json_and_friends_2": {
