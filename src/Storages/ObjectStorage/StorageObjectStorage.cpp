@@ -689,9 +689,5 @@ void StorageObjectStorage::checkAlterIsPossible(const AlterCommands & commands, 
     configuration->checkAlterIsPossible(commands);
 }
 
-StorageObjectStorage::Configuration::Path StorageObjectStorage::Configuration::getPathForWrite(const std::string & partition_id, const std::string & filename_override) const
-{
-    return Path {file_path_generator->getPathForWrite(partition_id, filename_override)};
 }
 
-}
