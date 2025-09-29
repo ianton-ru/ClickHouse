@@ -190,7 +190,7 @@ std::shared_ptr<IObjectIterator> StorageObjectStorageSource::createFileIterator(
             if (local_context->getSettingsRef()[Setting::use_object_storage_list_objects_cache] && object_storage->supportsListObjectsCache())
             {
                 auto & cache = ObjectStorageListObjectsCache::instance();
-                ObjectStorageListObjectsCache::Key cache_key {object_storage->getDescription(), configuration->getNamespace(), configuration->getPathWithoutGlobs()};
+                ObjectStorageListObjectsCache::Key cache_key {object_storage->getDescription(), configuration->getNamespace(), configuration->getRawPath().cutGlobs(configuration->supportsPartialPathPrefix())};
 
                 if (auto objects_info = cache.get(cache_key, /*filter_by_prefix=*/ false))
                 {
@@ -199,12 +199,12 @@ std::shared_ptr<IObjectIterator> StorageObjectStorageSource::createFileIterator(
                 else
                 {
                     cache_ptr = std::make_unique<GlobIterator::ListObjectsCacheWithKey>(cache, cache_key);
-                    object_iterator = object_storage->iterate(configuration->getPathWithoutGlobs(), query_settings.list_object_keys_size);
+                    object_iterator = object_storage->iterate(configuration->getRawPath().cutGlobs(configuration->supportsPartialPathPrefix()), query_settings.list_object_keys_size);
                 }
             }
             else
             {
-                object_iterator = object_storage->iterate(configuration->getPathWithoutGlobs(), query_settings.list_object_keys_size);
+                object_iterator = object_storage->iterate(configuration->getRawPath().cutGlobs(configuration->supportsPartialPathPrefix()), query_settings.list_object_keys_size);
             }
 
             /// Iterate through disclosed globs and make a source for each file
