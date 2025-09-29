@@ -117,7 +117,7 @@ void StorageObjectStorageConfiguration::initialize(
     else
         FormatFactory::instance().checkFormatName(configuration_to_initialize.format);
 
-    configuration_to_initialize.read_path = file_path_generator->getPathForRead();
+    configuration_to_initialize.read_path = configuration_to_initialize.file_path_generator->getPathForRead();
     configuration_to_initialize.initialized = true;
 }
 
