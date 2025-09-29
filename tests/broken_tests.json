@@ -435,5 +435,25 @@
         "check_types": [
             "tsan"
         ]
+    },
+    "test_database_hms/test.py::test_list_tables": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_database_hms/test.py::test_many_namespaces": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_database_hms/test.py::test_select": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_database_hms/test.py::test_tables_with_same_location": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_database_hms/test.py::test_hide_sensitive_info": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
     }
 }
