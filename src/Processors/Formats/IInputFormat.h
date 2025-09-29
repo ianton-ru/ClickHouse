@@ -5,6 +5,7 @@
 #include <Processors/Formats/InputFormatErrorsLogger.h>
 #include <Core/BlockMissingValues.h>
 #include <Processors/ISource.h>
+#include <Core/Settings.h>
 
 
 namespace DB
