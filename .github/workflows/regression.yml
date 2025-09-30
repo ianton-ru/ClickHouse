@@ -299,7 +299,7 @@ jobs:
           REPORTS_PATH=${{ runner.temp }}/reports_dir
           SUITE=alter
           STORAGE=/${{ matrix.ONLY }}_partition
-          PART='${{ matrix.PART }}'
+          PART=${{ matrix.PART }}
           EOF
       - name: Setup
         run: .github/setup.sh
