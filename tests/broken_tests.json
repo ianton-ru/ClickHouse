@@ -54,7 +54,8 @@
     "02479_race_condition_between_insert_and_droppin_mv": {
         "reason": "INVESTIGATE - Timeout in ClickHouse query",
         "check_types": [
-            "tsan"
+            "tsan",
+            "msan"
         ]
     },
     "01037_polygon_dicts_correctness_fast": {
@@ -257,6 +258,13 @@
             "msan"
         ]
     },
+    "00159_parallel_formatting_json_and_friends_1": {
+        "reason": "INVESTIGATE - Timeout on msan",
+        "message": "Timeout! Processes left in process group",
+        "check_types": [
+            "msan"
+        ]
+    },
     "02177_issue_31009": {
         "reason": "INVESTIGATE - Timeout on ubsan",
         "message": "Timeout! Processes left in process group",
@@ -316,11 +324,25 @@
             "tsan"
         ]
     },
+    "03100_lwu_23_apply_patches": {
+        "reason": "INVESTIGATE - Timeout on tsan",
+        "message": "Timeout exceeded (180 s) while flushing system log",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "00284_external_aggregation": {
         "reason": "INVESTIGATE - Timeout in query on tsan",
         "message": "DB::Exception: Timeout exceeded",
         "check_types": [
             "tsan"
+        ]
+    },
+    "03593_backup_with_broken_projection": {
+        "reason": "INVESTIGATE - Timeout on msan",
+        "message": "Timeout exceeded while receiving data from server.",
+        "check_types": [
+            "msan"
         ]
     },
     "00159_parallel_formatting_http": {
