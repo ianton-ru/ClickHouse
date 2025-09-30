@@ -4148,6 +4148,7 @@ jobs:
 ##########################################################################################
 ##################################### ALTINITY JOBS ######################################
 ##########################################################################################
+
   GrypeScanServer:
     needs: [config_workflow, docker_server_image]
     if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'RG9ja2VyIHNlcnZlciBpbWFnZQ==') }}
@@ -4308,12 +4309,12 @@ jobs:
       - clickbench_arm_release
       - sqltest
       - finish_workflow
-      - SignRelease
-      - SignAarch64
-      - RegressionTestsRelease
-      - RegressionTestsAarch64
       - GrypeScanServer
       - GrypeScanKeeper
+      - RegressionTestsRelease
+      - RegressionTestsAarch64
+      - SignRelease
+      - SignAarch64
     runs-on: [self-hosted, altinity-on-demand, altinity-style-checker-aarch64]
     steps:
       - name: Check out repository code

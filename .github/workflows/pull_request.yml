@@ -4104,6 +4104,7 @@ jobs:
 ##########################################################################################
 ##################################### ALTINITY JOBS ######################################
 ##########################################################################################
+
   GrypeScanServer:
     needs: [config_workflow, docker_server_image]
     if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'RG9ja2VyIHNlcnZlciBpbWFnZQ==') }}
@@ -4150,25 +4151,6 @@ jobs:
       build_sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       timeout_minutes: 300
       workflow_config: ${{ needs.config_workflow.outputs.data }}
-
-  SignRelease:
-    needs: [config_workflow, build_amd_release]
-    if: ${{ !failure() && !cancelled() }}
-    uses: ./.github/workflows/reusable_sign.yml
-    secrets: inherit
-    with:
-      test_name: Sign release
-      runner_type: altinity-style-checker
-      data: ${{ needs.config_workflow.outputs.data }}
-  SignAarch64:
-    needs: [config_workflow, build_arm_release]
-    if: ${{ !failure() && !cancelled() }}
-    uses: ./.github/workflows/reusable_sign.yml
-    secrets: inherit
-    with:
-      test_name: Sign aarch64
-      runner_type: altinity-style-checker-aarch64
-      data: ${{ needs.config_workflow.outputs.data }}
 
   FinishCIReport:
     if: ${{ !cancelled() }}
@@ -4263,12 +4245,10 @@ jobs:
       - buzzhouse_amd_msan
       - buzzhouse_amd_ubsan
       - finish_workflow
-      - SignRelease
-      - SignAarch64
-      - RegressionTestsRelease
-      - RegressionTestsAarch64
       - GrypeScanServer
       - GrypeScanKeeper
+      - RegressionTestsRelease
+      - RegressionTestsAarch64
     runs-on: [self-hosted, altinity-on-demand, altinity-style-checker-aarch64]
     steps:
       - name: Check out repository code
