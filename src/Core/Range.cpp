@@ -2,12 +2,14 @@
 #include <Core/Range.h>
 #include <IO/Operators.h>
 #include <IO/WriteBufferFromString.h>
+#include <IO/ReadBufferFromString.h>
 #include <Common/FieldVisitorToString.h>
 #include <Common/FieldAccurateComparison.h>
 
 
 namespace DB
 {
+
 
 FieldRef::FieldRef(ColumnsWithTypeAndName * columns_, size_t row_idx_, size_t column_idx_)
     : Field((*(*columns_)[column_idx_].column)[row_idx_]), columns(columns_), row_idx(row_idx_), column_idx(column_idx_)
@@ -149,6 +151,13 @@ bool Range::fullBounded() const
 bool Range::isInfinite() const
 {
     return left.isNegativeInfinity() && right.isPositiveInfinity();
+}
+
+/// [x, x]
+bool Range::isPoint() const
+{
+    return fullBounded() && left_included && right_included && equals(left, right)
+        && !left.isNegativeInfinity() && !left.isPositiveInfinity();
 }
 
 bool Range::intersectsRange(const Range & r) const

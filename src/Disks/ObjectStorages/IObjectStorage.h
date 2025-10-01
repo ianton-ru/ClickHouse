@@ -9,6 +9,7 @@
 
 #include <Poco/Timestamp.h>
 #include <Poco/Util/AbstractConfiguration.h>
+#include <Poco/JSON/Object.h>
 #include <Core/Defines.h>
 #include <IO/ReadSettings.h>
 #include <IO/WriteSettings.h>
@@ -107,6 +108,11 @@ struct ObjectMetadata
     ObjectAttributes attributes;
 };
 
+
+struct DataFileInfo;
+class DataFileMetaInfo;
+using DataFileMetaInfoPtr = std::shared_ptr<DataFileMetaInfo>;
+
 struct DataLakeObjectMetadata;
 
 struct RelativePathWithMetadata
@@ -116,6 +122,8 @@ struct RelativePathWithMetadata
     std::optional<ObjectMetadata> metadata;
     /// Delta lake related object metadata.
     std::optional<DataLakeObjectMetadata> data_lake_metadata;
+    /// Information about columns
+    std::optional<DataFileMetaInfoPtr> file_meta_info;
 
     RelativePathWithMetadata() = default;
 
@@ -123,6 +131,7 @@ struct RelativePathWithMetadata
         : relative_path(std::move(relative_path_))
         , metadata(std::move(metadata_))
     {}
+    explicit RelativePathWithMetadata(const DataFileInfo & info, std::optional<ObjectMetadata> metadata_ = std::nullopt);
 
     RelativePathWithMetadata(const RelativePathWithMetadata & other) = default;
 
@@ -134,6 +143,9 @@ struct RelativePathWithMetadata
     virtual std::string getPathToArchive() const { throw Exception(ErrorCodes::LOGICAL_ERROR, "Not an archive"); }
     virtual size_t fileSizeInArchive() const { throw Exception(ErrorCodes::LOGICAL_ERROR, "Not an archive"); }
     virtual std::string getPathOrPathToArchiveIfArchive() const;
+
+    void setFileMetaInfo(std::optional<DataFileMetaInfoPtr> file_meta_info_ ) { file_meta_info = file_meta_info_; }
+    std::optional<DataFileMetaInfoPtr> getFileMetaInfo() const { return file_meta_info; }
 };
 
 struct ObjectKeyWithMetadata

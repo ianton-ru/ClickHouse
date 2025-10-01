@@ -108,6 +108,7 @@ extern const SettingsBool use_roaring_bitmap_iceberg_positional_deletes;
 extern const SettingsString iceberg_metadata_compression_method;
 extern const SettingsBool allow_experimental_insert_into_iceberg;
 extern const SettingsBool allow_experimental_iceberg_compaction;
+extern const SettingsBool allow_experimental_iceberg_read_optimization;
 }
 
 namespace
@@ -966,6 +967,7 @@ ColumnMapperPtr IcebergMetadata::getColumnMapperForCurrentSchema() const
     SharedLockGuard lock(mutex);
     return persistent_components.schema_processor->getColumnMapperById(relevant_snapshot_schema_id);
 }
+
 }
 
 #endif
