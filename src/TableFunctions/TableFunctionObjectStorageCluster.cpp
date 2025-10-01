@@ -184,19 +184,37 @@ void registerTableFunctionIcebergCluster(TableFunctionFactory & factory)
 }
 #endif
 
-#if USE_AWS_S3
 #if USE_PARQUET && USE_DELTA_KERNEL_RS
 void registerTableFunctionDeltaLakeCluster(TableFunctionFactory & factory)
 {
+#   if USE_AWS_S3
     factory.registerFunction<TableFunctionDeltaLakeCluster>(
         {.documentation
          = {.description = R"(The table function can be used to read the DeltaLake table stored on object store in parallel for many nodes in a specified cluster.)",
             .examples{{DeltaLakeClusterDefinition::name, "SELECT * FROM deltaLakeCluster(cluster, url, access_key_id, secret_access_key)", ""}},
             .category = FunctionDocumentation::Category::TableFunction},
          .allow_readonly = false});
+
+    factory.registerFunction<TableFunctionDeltaLakeS3Cluster>(
+        {.documentation
+         = {.description = R"(The table function can be used to read the DeltaLake table stored on object store in parallel for many nodes in a specified cluster.)",
+            .examples{{DeltaLakeS3ClusterDefinition::name, "SELECT * FROM deltaLakeS3Cluster(cluster, url, access_key_id, secret_access_key)", ""}},
+            .category = FunctionDocumentation::Category::TableFunction},
+         .allow_readonly = false});
+#   endif
+
+#   if USE_AZURE_BLOB_STORAGE
+    factory.registerFunction<TableFunctionDeltaLakeAzureCluster>(
+        {.documentation
+         = {.description = R"(The table function can be used to read the DeltaLake table stored on object store in parallel for many nodes in a specified cluster.)",
+            .examples{{DeltaLakeAzureClusterDefinition::name, "SELECT * FROM deltaLakeAzureCluster(cluster, url, access_key_id, secret_access_key)", ""}},
+            .category = FunctionDocumentation::Category::TableFunction},
+         .allow_readonly = false});
+#   endif
 }
 #endif
 
+#if USE_AWS_S3
 void registerTableFunctionHudiCluster(TableFunctionFactory & factory)
 {
     factory.registerFunction<TableFunctionHudiCluster>(

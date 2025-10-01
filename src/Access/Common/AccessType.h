@@ -23,7 +23,6 @@ namespace AccessTypeObjects
 enum class Source : uint8_t
 {
 #define APPLY_FOR_SOURCE(M) \
-    M(UNDEFINED, "") \
     M(FILE, "File") \
     M(URL, "") \
     M(REMOTE, "Distributed") \

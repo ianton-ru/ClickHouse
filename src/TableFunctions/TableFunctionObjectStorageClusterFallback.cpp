@@ -74,6 +74,20 @@ struct DeltaLakeClusterFallbackDefinition
     static constexpr auto storage_engine_cluster_name = "DeltaLakeS3Cluster";
 };
 
+struct DeltaLakeS3ClusterFallbackDefinition
+{
+    static constexpr auto name = "deltaLakeS3";
+    static constexpr auto storage_engine_name = "S3";
+    static constexpr auto storage_engine_cluster_name = "DeltaLakeS3Cluster";
+};
+
+struct DeltaLakeAzureClusterFallbackDefinition
+{
+    static constexpr auto name = "deltaLakeAzure";
+    static constexpr auto storage_engine_name = "Azure";
+    static constexpr auto storage_engine_cluster_name = "DeltaLakeAzureCluster";
+};
+
 struct HudiClusterFallbackDefinition
 {
     static constexpr auto name = "hudi";
@@ -165,6 +179,11 @@ using TableFunctionIcebergHDFSClusterFallback = TableFunctionObjectStorageCluste
 
 #if USE_AWS_S3 && USE_PARQUET && USE_DELTA_KERNEL_RS
 using TableFunctionDeltaLakeClusterFallback = TableFunctionObjectStorageClusterFallback<DeltaLakeClusterFallbackDefinition, TableFunctionDeltaLakeCluster>;
+using TableFunctionDeltaLakeS3ClusterFallback = TableFunctionObjectStorageClusterFallback<DeltaLakeS3ClusterFallbackDefinition, TableFunctionDeltaLakeS3Cluster>;
+#endif
+
+#if USE_AZURE_BLOB_STORAGE && USE_PARQUET && USE_DELTA_KERNEL_RS
+using TableFunctionDeltaLakeAzureClusterFallback = TableFunctionObjectStorageClusterFallback<DeltaLakeAzureClusterFallbackDefinition, TableFunctionDeltaLakeAzureCluster>;
 #endif
 
 #if USE_AWS_S3
@@ -337,7 +356,8 @@ void registerTableFunctionObjectStorageClusterFallback(TableFunctionFactory & fa
     );
 #endif
 
-#if USE_AWS_S3 && USE_PARQUET && USE_DELTA_KERNEL_RS
+#if USE_PARQUET && USE_DELTA_KERNEL_RS
+#   if USE_AWS_S3
     factory.registerFunction<TableFunctionDeltaLakeClusterFallback>(
     {
         .documentation = {
@@ -358,6 +378,49 @@ void registerTableFunctionObjectStorageClusterFallback(TableFunctionFactory & fa
         .allow_readonly = false
     }
     );
+    factory.registerFunction<TableFunctionDeltaLakeS3ClusterFallback>(
+    {
+        .documentation = {
+            .description=R"(The table function can be used to read the DeltaLake table stored on object store in parallel for many nodes in a specified cluster or from single node.)",
+            .examples{
+                {
+                    "deltaLakeS3",
+                    "SELECT * FROM deltaLakeS3(url, access_key_id, secret_access_key)", ""
+                },
+                {
+                    "deltaLakeS3",
+                    "SELECT * FROM deltaLakeS3(url, access_key_id, secret_access_key) "
+                    "SETTINGS object_storage_cluster='cluster'", ""
+                },
+            },
+            .category = FunctionDocumentation::Category::TableFunction
+        },
+        .allow_readonly = false
+    }
+    );
+#   endif
+#   if USE_AZURE_BLOB_STORAGE
+    factory.registerFunction<TableFunctionDeltaLakeAzureClusterFallback>(
+    {
+        .documentation = {
+            .description=R"(The table function can be used to read the DeltaLake table stored on object store in parallel for many nodes in a specified cluster or from single node.)",
+            .examples{
+                {
+                    "deltaLakeAzure",
+                    "SELECT * FROM deltaLakeAzure(url, access_key_id, secret_access_key)", ""
+                },
+                {
+                    "deltaLakeAzure",
+                    "SELECT * FROM deltaLakeAzure(url, access_key_id, secret_access_key) "
+                    "SETTINGS object_storage_cluster='cluster'", ""
+                },
+            },
+            .category = FunctionDocumentation::Category::TableFunction
+        },
+        .allow_readonly = false
+    }
+    );
+#   endif
 #endif
 
 #if USE_AWS_S3

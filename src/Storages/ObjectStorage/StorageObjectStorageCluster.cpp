@@ -288,6 +288,8 @@ void StorageObjectStorageCluster::updateQueryForDistributedEngineIfNeeded(ASTPtr
         {"IcebergAzure", "icebergAzure"},
         {"IcebergHDFS", "icebergHDFS"},
         {"DeltaLake", "deltaLake"},
+        {"DeltaLakeS3", "deltaLakeS3"},
+        {"DeltaLakeAzure", "deltaLakeAzure"},
         {"Hudi", "hudi"}
     };
 
@@ -407,6 +409,8 @@ void StorageObjectStorageCluster::updateQueryToSendIfNeeded(
             {"icebergAzure", "icebergAzureCluster"},
             {"icebergHDFS", "icebergHDFSCluster"},
             {"deltaLake", "deltaLakeCluster"},
+            {"deltaLakeS3", "deltaLakeS3Cluster"},
+            {"deltaLakeAzure", "deltaLakeAzureCluster"},
             {"hudi", "hudiCluster"},
         };
 

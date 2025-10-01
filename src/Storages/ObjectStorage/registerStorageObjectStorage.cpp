@@ -220,7 +220,7 @@ void registerStorageIceberg(StorageFactory & factory)
             .supports_settings = true,
             .supports_sort_order = true,
             .supports_schema_inference = true,
-            .source_access_type = AccessTypeObjects::Source::UNDEFINED,
+            .source_access_type = AccessTypeObjects::Source::S3,
             .has_builtin_setting_fn = DataLakeStorageSettings::hasBuiltin,
         });
 
@@ -298,7 +298,7 @@ void registerStorageIceberg(StorageFactory & factory)
 #if USE_PARQUET && USE_DELTA_KERNEL_RS
 void registerStorageDeltaLake(StorageFactory & factory)
 {
-#if USE_AWS_S3
+#   if USE_AWS_S3
     factory.registerStorage(
         DeltaLakeDefinition::storage_engine_name,
         [&](const StorageFactory::Arguments & args)
