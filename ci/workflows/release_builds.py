@@ -10,11 +10,28 @@ builds_for_release_branch = [
     if "coverage" not in job.name
 ]
 
+PRIORITY_BUILD_JOBS = [
+    job.name
+    for job in JobConfigs.build_jobs
+    if any(
+        substr in job.name
+        for substr in (
+            "binary",
+            "release",
+        )
+    )
+]
+
 workflow = Workflow.Config(
     name="Release Builds",
     event=Workflow.Event.DISPATCH,
     jobs=[
-        *builds_for_release_branch,
+        *[
+            job.set_dependency(
+                PRIORITY_BUILD_JOBS if job.name not in PRIORITY_BUILD_JOBS else []
+            )
+            for job in builds_for_release_branch
+        ],
         JobConfigs.docker_sever,
         JobConfigs.docker_keeper,
         *JobConfigs.install_check_master_jobs,
