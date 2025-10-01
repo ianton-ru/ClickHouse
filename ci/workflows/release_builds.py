@@ -10,16 +10,12 @@ builds_for_release_branch = [
     if "coverage" not in job.name
 ]
 
-PRIORITY_BUILD_JOBS = [
+# Make sure that builds that get tested are built first
+# Note that the release build job should not block or be blocked, it is long and it's dependencies are fast.
+BLOCKING_BUILD_JOBS = [
     job.name
     for job in JobConfigs.build_jobs
-    if any(
-        substr in job.name
-        for substr in (
-            "binary",
-            "release",
-        )
-    )
+    if any(substr in job.name for substr in ["binary"])
 ]
 
 workflow = Workflow.Config(
@@ -28,7 +24,9 @@ workflow = Workflow.Config(
     jobs=[
         *[
             job.set_dependency(
-                PRIORITY_BUILD_JOBS if job.name not in PRIORITY_BUILD_JOBS else []
+                BLOCKING_BUILD_JOBS
+                if job.name not in BLOCKING_BUILD_JOBS and "release" not in job.name
+                else []
             )
             for job in builds_for_release_branch
         ],

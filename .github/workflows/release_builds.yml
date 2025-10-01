@@ -182,7 +182,7 @@ jobs:
 
   build_amd_debug:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_release, build_amd_binary, build_arm_release, build_arm_binary]
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_debug)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -276,7 +276,7 @@ jobs:
 
   build_amd_asan:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_release, build_amd_binary, build_arm_release, build_arm_binary]
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_asan)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -323,7 +323,7 @@ jobs:
 
   build_amd_tsan:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_release, build_amd_binary, build_arm_release, build_arm_binary]
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_tsan)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -370,7 +370,7 @@ jobs:
 
   build_amd_msan:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_release, build_amd_binary, build_arm_release, build_arm_binary]
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_msan)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -417,7 +417,7 @@ jobs:
 
   build_amd_ubsan:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_release, build_amd_binary, build_arm_release, build_arm_binary]
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_ubsan)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
