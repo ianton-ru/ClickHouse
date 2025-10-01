@@ -46,7 +46,7 @@ struct HDFSDefinition
 struct IcebergDefinition
 {
     static constexpr auto name = "iceberg";
-    static constexpr auto storage_engine_name = "UNDEFINED";
+    static constexpr auto storage_engine_name = "Iceberg";
 };
 
 struct IcebergS3Definition
@@ -130,7 +130,7 @@ struct HDFSClusterDefinition
 struct IcebergClusterDefinition
 {
     static constexpr auto name = "icebergCluster";
-    static constexpr auto storage_engine_name = "UNDEFINED";
+    static constexpr auto storage_engine_name = "IcebergCluster";
     static constexpr auto non_clustered_storage_engine_name = IcebergDefinition::storage_engine_name;
 };
 

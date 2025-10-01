@@ -103,6 +103,21 @@ StorageObjectStorageCluster::StorageObjectStorageCluster(
 
     auto log_ = getLogger("StorageObjectStorageCluster");
 
+    if (!columns_in_table_or_function_definition.empty()
+        && !is_datalake_query
+        && mode_ == LoadingStrictnessLevel::CREATE)
+    {
+        configuration->create(
+            object_storage,
+            context_,
+            columns_in_table_or_function_definition,
+            partition_by,
+            if_not_exists,
+            catalog,
+            table_id_
+        );
+    }
+
     try
     {
         if (!do_lazy_init)
@@ -160,8 +175,8 @@ StorageObjectStorageCluster::StorageObjectStorageCluster(
         object_storage,
         context_,
         getStorageID(),
-        getInMemoryMetadata().getColumns(),
-        getInMemoryMetadata().getConstraints(),
+        IStorageCluster::getInMemoryMetadata().getColumns(),
+        IStorageCluster::getInMemoryMetadata().getConstraints(),
         comment_,
         format_settings_,
         mode_,
@@ -176,7 +191,7 @@ StorageObjectStorageCluster::StorageObjectStorageCluster(
     auto virtuals_ = getVirtualsPtr();
     if (virtuals_)
         pure_storage->setVirtuals(*virtuals_);
-    pure_storage->setInMemoryMetadata(getInMemoryMetadata());
+    pure_storage->setInMemoryMetadata(IStorageCluster::getInMemoryMetadata());
 }
 
 std::string StorageObjectStorageCluster::getName() const
@@ -540,6 +555,35 @@ QueryProcessingStage::Enum StorageObjectStorageCluster::getQueryProcessingStage(
     return IStorageCluster::getQueryProcessingStage(context, to_stage, storage_snapshot, query_info);
 }
 
+std::optional<QueryPipeline> StorageObjectStorageCluster::distributedWrite(
+    const ASTInsertQuery & query,
+    ContextPtr context)
+{
+    if (getClusterName(context).empty())
+        return pure_storage->distributedWrite(query, context);
+    return IStorageCluster::distributedWrite(query, context);
+}
+
+void StorageObjectStorageCluster::drop()
+{
+    if (pure_storage)
+    {
+        pure_storage->drop();
+        return;
+    }
+    IStorageCluster::drop();
+}
+
+void StorageObjectStorageCluster::dropInnerTableIfAny(bool sync, ContextPtr context)
+{
+    if (getClusterName(context).empty())
+    {
+        pure_storage->dropInnerTableIfAny(sync, context);
+        return;
+    }
+    IStorageCluster::dropInnerTableIfAny(sync, context);
+}
+
 void StorageObjectStorageCluster::truncate(
     const ASTPtr & query,
     const StorageMetadataPtr & metadata_snapshot,
@@ -556,6 +600,48 @@ void StorageObjectStorageCluster::truncate(
     throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Truncate is not supported by storage {}", getName());
 }
 
+void StorageObjectStorageCluster::checkTableCanBeRenamed(const StorageID & new_name) const
+{
+    if (pure_storage)
+    {
+        pure_storage->checkTableCanBeRenamed(new_name);
+        return;
+    }
+    IStorageCluster::checkTableCanBeRenamed(new_name);
+}
+
+void StorageObjectStorageCluster::rename(const String & new_path_to_table_data, const StorageID & new_table_id)
+{
+    if (pure_storage)
+    {
+        pure_storage->rename(new_path_to_table_data, new_table_id);
+        return;
+    }
+    IStorageCluster::rename(new_path_to_table_data, new_table_id);
+}
+
+void StorageObjectStorageCluster::renameInMemory(const StorageID & new_table_id)
+{
+    if (pure_storage)
+    {
+        pure_storage->renameInMemory(new_table_id);
+        return;
+    }
+    IStorageCluster::renameInMemory(new_table_id);
+}
+
+void StorageObjectStorageCluster::alter(const AlterCommands & params, ContextPtr context, AlterLockHolder & alter_lock_holder)
+{
+    if (getClusterName(context).empty())
+    {
+        pure_storage->alter(params, context, alter_lock_holder);
+        setInMemoryMetadata(pure_storage->getInMemoryMetadata());
+        return;
+    }
+    IStorageCluster::alter(params, context, alter_lock_holder);
+    pure_storage->setInMemoryMetadata(IStorageCluster::getInMemoryMetadata());
+}
+
 void StorageObjectStorageCluster::addInferredEngineArgsToCreateQuery(ASTs & args, const ContextPtr & context) const
 {
     configuration->addStructureAndFormatToArgsIfNeeded(args, "", configuration->getFormat(), context, /*with_structure=*/false);
@@ -563,7 +649,7 @@ void StorageObjectStorageCluster::addInferredEngineArgsToCreateQuery(ASTs & args
 
 bool StorageObjectStorageCluster::updateExternalDynamicMetadataIfExists(ContextPtr context)
 {
-    if (pure_storage)
+    if (getClusterName(context).empty())
         return pure_storage->updateExternalDynamicMetadataIfExists(context);
     return IStorageCluster::updateExternalDynamicMetadataIfExists(context);
 }
@@ -577,7 +663,7 @@ StorageMetadataPtr StorageObjectStorageCluster::getInMemoryMetadataPtr() const
 
 IDataLakeMetadata * StorageObjectStorageCluster::getExternalMetadata(ContextPtr query_context)
 {
-    if (pure_storage)
+    if (getClusterName(query_context).empty())
         return pure_storage->getExternalMetadata(query_context);
 
     configuration->update(
@@ -587,6 +673,163 @@ IDataLakeMetadata * StorageObjectStorageCluster::getExternalMetadata(ContextPtr 
         /* check_consistent_with_previous_metadata */false);
 
     return configuration->getExternalMetadata();
+}
+
+void StorageObjectStorageCluster::checkAlterIsPossible(const AlterCommands & commands, ContextPtr context) const
+{
+    if (getClusterName(context).empty())
+    {
+        pure_storage->checkAlterIsPossible(commands, context);
+        return;
+    }
+    IStorageCluster::checkAlterIsPossible(commands, context);
+}
+
+void StorageObjectStorageCluster::checkMutationIsPossible(const MutationCommands & commands, const Settings & settings) const
+{
+    if (pure_storage)
+    {
+        pure_storage->checkMutationIsPossible(commands, settings);
+        return;
+    }
+    IStorageCluster::checkMutationIsPossible(commands, settings);
+}
+
+Pipe StorageObjectStorageCluster::alterPartition(
+    const StorageMetadataPtr & metadata_snapshot,
+    const PartitionCommands & commands,
+    ContextPtr context)
+{
+    if (getClusterName(context).empty())
+        return pure_storage->alterPartition(metadata_snapshot, commands, context);
+    return IStorageCluster::alterPartition(metadata_snapshot, commands, context);
+}
+
+void StorageObjectStorageCluster::checkAlterPartitionIsPossible(
+    const PartitionCommands & commands,
+    const StorageMetadataPtr & metadata_snapshot,
+    const Settings & settings,
+    ContextPtr context) const
+{
+    if (getClusterName(context).empty())
+    {
+        pure_storage->checkAlterPartitionIsPossible(commands, metadata_snapshot, settings, context);
+        return;
+    }
+    IStorageCluster::checkAlterPartitionIsPossible(commands, metadata_snapshot, settings, context);
+}
+
+bool StorageObjectStorageCluster::optimize(
+    const ASTPtr & query,
+    const StorageMetadataPtr & metadata_snapshot,
+    const ASTPtr & partition,
+    bool final,
+    bool deduplicate,
+    const Names & deduplicate_by_columns,
+    bool cleanup,
+    ContextPtr context)
+{
+    if (getClusterName(context).empty())
+        return pure_storage->optimize(query, metadata_snapshot, partition, final, deduplicate, deduplicate_by_columns, cleanup, context);
+    return IStorageCluster::optimize(query, metadata_snapshot, partition, final, deduplicate, deduplicate_by_columns, cleanup, context);
+}
+
+QueryPipeline StorageObjectStorageCluster::updateLightweight(const MutationCommands & commands, ContextPtr context)
+{
+    if (getClusterName(context).empty())
+        return pure_storage->updateLightweight(commands, context);
+    return IStorageCluster::updateLightweight(commands, context);
+}
+
+void StorageObjectStorageCluster::mutate(const MutationCommands & commands, ContextPtr context)
+{
+    if (getClusterName(context).empty())
+    {
+        pure_storage->mutate(commands, context);
+        return;
+    }
+    IStorageCluster::mutate(commands, context);
+}
+
+CancellationCode StorageObjectStorageCluster::killMutation(const String & mutation_id)
+{
+    if (pure_storage)
+        return pure_storage->killMutation(mutation_id);
+    return IStorageCluster::killMutation(mutation_id);
+}
+
+void StorageObjectStorageCluster::waitForMutation(const String & mutation_id, bool wait_for_another_mutation)
+{
+    if (pure_storage)
+    {
+        pure_storage->waitForMutation(mutation_id, wait_for_another_mutation);
+        return;
+    }
+    IStorageCluster::waitForMutation(mutation_id, wait_for_another_mutation);
+}
+
+void StorageObjectStorageCluster::setMutationCSN(const String & mutation_id, UInt64 csn)
+{
+    if (pure_storage)
+    {
+        pure_storage->setMutationCSN(mutation_id, csn);
+        return;
+    }
+    IStorageCluster::setMutationCSN(mutation_id, csn);
+}
+
+CancellationCode StorageObjectStorageCluster::killPartMoveToShard(const UUID & task_uuid)
+{
+    if (pure_storage)
+        return pure_storage->killPartMoveToShard(task_uuid);
+    return IStorageCluster::killPartMoveToShard(task_uuid);
+}
+
+void StorageObjectStorageCluster::startup()
+{
+    if (pure_storage)
+    {
+        pure_storage->startup();
+        return;
+    }
+    IStorageCluster::startup();
+}
+
+void StorageObjectStorageCluster::shutdown(bool is_drop)
+{
+    if (pure_storage)
+    {
+        pure_storage->shutdown(is_drop);
+        return;
+    }
+    IStorageCluster::shutdown(is_drop);
+}
+
+void StorageObjectStorageCluster::flushAndPrepareForShutdown()
+{
+    if (pure_storage)
+    {
+        pure_storage->flushAndPrepareForShutdown();
+        return;
+    }
+    IStorageCluster::flushAndPrepareForShutdown();
+}
+
+ActionLock StorageObjectStorageCluster::getActionLock(StorageActionBlockType action_type)
+{
+    if (pure_storage)
+        return pure_storage->getActionLock(action_type);
+    return IStorageCluster::getActionLock(action_type);
+}
+
+void StorageObjectStorageCluster::onActionLockRemove(StorageActionBlockType action_type)
+{
+    if (pure_storage)
+    {
+        pure_storage->onActionLockRemove(action_type);
+        return;
+    }
+    IStorageCluster::onActionLockRemove(action_type);
 }
 
 }

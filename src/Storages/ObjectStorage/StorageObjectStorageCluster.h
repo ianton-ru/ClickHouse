@@ -45,11 +45,27 @@ public:
 
     QueryProcessingStage::Enum getQueryProcessingStage(ContextPtr, QueryProcessingStage::Enum, const StorageSnapshotPtr &, SelectQueryInfo &) const override;
 
+    std::optional<QueryPipeline> distributedWrite(
+        const ASTInsertQuery & query,
+        ContextPtr context) override;
+
+    void drop() override;
+
+    void dropInnerTableIfAny(bool sync, ContextPtr context) override;
+
     void truncate(
         const ASTPtr & query,
         const StorageMetadataPtr & metadata_snapshot,
         ContextPtr local_context,
         TableExclusiveLockHolder &) override;
+
+    void checkTableCanBeRenamed(const StorageID & new_name) const override;
+
+    void rename(const String & new_path_to_table_data, const StorageID & new_table_id) override;
+
+    void renameInMemory(const StorageID & new_table_id) override;
+
+    void alter(const AlterCommands & params, ContextPtr context, AlterLockHolder & alter_lock_holder) override;
 
     void addInferredEngineArgsToCreateQuery(ASTs & args, const ContextPtr & context) const override;
 
@@ -58,6 +74,53 @@ public:
     bool updateExternalDynamicMetadataIfExists(ContextPtr context) override;
 
     StorageMetadataPtr getInMemoryMetadataPtr() const override;
+
+    void checkAlterIsPossible(const AlterCommands & commands, ContextPtr context) const override;
+
+    void checkMutationIsPossible(const MutationCommands & commands, const Settings & settings) const override;
+
+    Pipe alterPartition(
+        const StorageMetadataPtr & metadata_snapshot,
+        const PartitionCommands & commands,
+        ContextPtr context) override;
+
+    void checkAlterPartitionIsPossible(
+        const PartitionCommands & commands,
+        const StorageMetadataPtr & metadata_snapshot,
+        const Settings & settings,
+        ContextPtr context) const override;
+
+    bool optimize(
+        const ASTPtr & query,
+        const StorageMetadataPtr & metadata_snapshot,
+        const ASTPtr & partition,
+        bool final,
+        bool deduplicate,
+        const Names & deduplicate_by_columns,
+        bool cleanup,
+        ContextPtr context) override;
+
+    QueryPipeline updateLightweight(const MutationCommands & commands, ContextPtr context) override;
+
+    void mutate(const MutationCommands & commands, ContextPtr context) override;
+
+    CancellationCode killMutation(const String & mutation_id) override;
+
+    void waitForMutation(const String & mutation_id, bool wait_for_another_mutation) override;
+
+    void setMutationCSN(const String & mutation_id, UInt64 csn) override;
+
+    CancellationCode killPartMoveToShard(const UUID & task_uuid) override;
+
+    void startup() override;
+
+    void shutdown(bool is_drop = false) override;
+
+    void flushAndPrepareForShutdown() override;
+
+    ActionLock getActionLock(StorageActionBlockType action_type) override;
+
+    void onActionLockRemove(StorageActionBlockType action_type) override;
 
 private:
     void updateQueryToSendIfNeeded(

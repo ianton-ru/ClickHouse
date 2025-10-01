@@ -103,8 +103,8 @@ StorageObjectStorage::StorageObjectStorage(
     std::optional<FormatSettings> format_settings_,
     LoadingStrictnessLevel mode,
     std::shared_ptr<DataLake::ICatalog> catalog_,
-    bool if_not_exists_,
-    bool is_datalake_query,
+    bool /*if_not_exists_*/,
+    bool /*is_datalake_query*/,
     bool distributed_processing_,
     ASTPtr partition_by_,
     bool is_table_function,
@@ -125,19 +125,6 @@ StorageObjectStorage::StorageObjectStorage(
         && !configuration->getPartitionStrategy()
         && !configuration->isDataLakeConfiguration();
     const bool do_lazy_init = lazy_init && !need_resolve_columns_or_format && !need_resolve_sample_path;
-
-    if (!is_table_function && !columns_in_table_or_function_definition.empty() && !is_datalake_query && mode == LoadingStrictnessLevel::CREATE)
-    {
-        configuration->create(
-            object_storage,
-            context,
-            columns_in_table_or_function_definition,
-            partition_by_,
-            if_not_exists_,
-            catalog,
-            storage_id
-        );
-    }
 
     bool updated_configuration = false;
     try
