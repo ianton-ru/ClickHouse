@@ -112,6 +112,7 @@ on:
 env:
   PYTHONUNBUFFERED: 1
 {ENV_CHECKOUT_REFERENCE}
+{ENV_SECRETS}
 
 jobs:
 {JOBS}\
@@ -495,18 +496,29 @@ class PullRequestPushYamlGen:
         )
         res = template_1.format(*job_items)
 
-        if self.workflow_config.event in (
-            Workflow.Event.PULL_REQUEST,
-            Workflow.Event.PUSH,
-        ):
-            # Use replace instead of format to avoid having to escape curly braces
-            res += AltinityWorkflowTemplates.ADDITIONAL_JOBS.replace(
-                "{ALL_JOBS}",
-                "\n".join(
-                    "      - " + Utils.normalize_string(job.name)
-                    for job in self.workflow_config.jobs
-                ),
-            ).replace("{REGRESSION_HASH}", AltinityWorkflowTemplates.REGRESSION_HASH)
+        ALL_JOBS = "\n".join(
+            "      - " + Utils.normalize_string(job.name)
+            for job in self.workflow_config.jobs
+        )
+        if self.workflow_config.additional_jobs:
+            res += AltinityWorkflowTemplates.ADDITIONAL_JOBS_BANNER
+        if "GrypeScan" in self.workflow_config.additional_jobs:
+            res += AltinityWorkflowTemplates.ALTINITY_JOBS["GrypeScan"]
+            ALL_JOBS += "\n      - GrypeScanServer\n      - GrypeScanKeeper"
+        if "Regression" in self.workflow_config.additional_jobs:
+            res += AltinityWorkflowTemplates.ALTINITY_JOBS["Regression"].replace(
+                "{REGRESSION_HASH}", AltinityWorkflowTemplates.REGRESSION_HASH
+            )
+            ALL_JOBS += (
+                "\n      - RegressionTestsRelease\n      - RegressionTestsAarch64"
+            )
+        if "SignRelease" in self.workflow_config.additional_jobs:
+            res += AltinityWorkflowTemplates.ALTINITY_JOBS["SignRelease"]
+            ALL_JOBS += "\n      - SignRelease\n      - SignAarch64"
+        if "CIReport" in self.workflow_config.additional_jobs:
+            res += AltinityWorkflowTemplates.ALTINITY_JOBS["CIReport"].replace(
+                "{ALL_JOBS}", ALL_JOBS
+            )
 
         return res
 
