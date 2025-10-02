@@ -78,7 +78,7 @@ services:
 
   # TODO: can we simply use with_minio=True instead?
   minio:
-    image: bitnami/minio:2025.4.22
+    image: bitnamilegacy/minio:2025.4.22
     environment:
       - MINIO_ROOT_USER=minio
       - MINIO_ROOT_PASSWORD=ClickHouse_Minio_P@ssw0rd
