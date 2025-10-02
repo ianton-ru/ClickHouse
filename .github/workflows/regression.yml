@@ -122,6 +122,7 @@ env:
   pr_number: ${{ github.event.number }}
   event_name: ${{ github.event_name }}
   version: ${{ fromJson(inputs.workflow_config).custom_data.version.string }}
+  SKIP_LIST: ${{ join(fromJson(inputs.workflow_config).custom_data.ci_exclude_tags, '|') || '' }}
 
 jobs:
   runner_labels_setup:
