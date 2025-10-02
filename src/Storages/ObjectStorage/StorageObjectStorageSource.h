@@ -218,8 +218,8 @@ private:
     void createFilterAST(const String & any_key);
     void fillBufferForKey(const std::string & uri_key);
 
-    const StorageObjectStorageConfigurationPtr configuration;
     ObjectStorageIteratorPtr object_storage_iterator;
+    const StorageObjectStorageConfigurationPtr configuration;
     const NamesAndTypesList virtual_columns;
     const NamesAndTypesList hive_columns;
     const bool throw_on_zero_files_match;
