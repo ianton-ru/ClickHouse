@@ -339,8 +339,23 @@
         ]
     },
     "00284_external_aggregation": {
-        "reason": "INVESTIGATE - Timeout in query on tsan",
+        "reason": "INVESTIGATE - Timeout in query on tsan, msan",
         "message": "DB::Exception: Timeout exceeded",
+        "check_types": [
+            "tsan",
+            "msan"
+        ]
+    },
+    "03550_analyzer_remote_view_columns": {
+        "reason": "INVESTIGATE - Timeout on tsan",
+        "message": "DB::Exception: Timeout exceeded (180 s) while flushing system log",
+        "check_types": [
+            "tsan"
+        ]
+    },
+    "01630_simple_aggregate_all_functions_in_aggregating_merge_tree": {
+        "reason": "INVESTIGATE - Timeout on tsan",
+        "message": "Timeout exceeded",
         "check_types": [
             "tsan"
         ]
