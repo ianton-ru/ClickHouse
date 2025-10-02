@@ -51,6 +51,13 @@
             "tsan"
         ]
     },
+    "03100_lwu_03_join": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "DB::Exception: Timeout exceeded (180 s) while flushing system log",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "02479_race_condition_between_insert_and_droppin_mv": {
         "reason": "INVESTIGATE - Timeout in ClickHouse query",
         "check_types": [
@@ -384,8 +391,7 @@
         "message": "NETLINK_ERROR"
     },
     "test_storage_delta/test.py::test_concurrent_queries[False]": {
-        "reason": "INVESTIGATE - NETLINK_ERROR",
-        "message": "NETLINK_ERROR"
+        "reason": "INVESTIGATE - Unstable test"
     },
     "test_storage_s3_queue/test_0.py::test_streaming_to_many_views[unordered]": {
         "reason": "INVESTIGATE: Broken test?"
