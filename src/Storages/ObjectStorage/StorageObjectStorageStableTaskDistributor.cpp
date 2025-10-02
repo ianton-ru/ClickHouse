@@ -189,7 +189,7 @@ ObjectInfoPtr StorageObjectStorageStableTaskDistributor::getMatchingFileFromIter
         // Queue file for its assigned replica
         {
             std::lock_guard lock(mutex);
-            unprocessed_files.emplace(file_path, std::make_pair(object_info, number_of_current_replica));
+            unprocessed_files.emplace(file_path, std::make_pair(object_info, file_replica_idx));
             connection_to_files[file_replica_idx].push_back(object_info);
         }
     }
@@ -281,7 +281,11 @@ void StorageObjectStorageStableTaskDistributor::rescheduleTasksFromReplica(size_
 
     replica_to_files_to_be_processed.erase(number_of_current_replica);
     for (const auto & file : processed_file_list_ptr->second)
-        unprocessed_files.emplace(file->getPath(), std::make_pair(file, getReplicaForFile(file->getPath())));
+    {
+        auto file_replica_idx = getReplicaForFile(file->getPath());
+        unprocessed_files.emplace(file->getPath(), std::make_pair(file, file_replica_idx));
+        connection_to_files[file_replica_idx].push_back(file);
+    }
 }
 
 }
