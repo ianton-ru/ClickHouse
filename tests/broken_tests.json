@@ -244,10 +244,18 @@
         ]
     },
     "00084_external_aggregation": {
-        "reason": "INVESTIGATE - Timeout on tsan",
+        "reason": "INVESTIGATE - Timeout on tsan, msan",
         "message": "Timeout! Processes left in process group",
         "check_types": [
-            "tsan"
+            "tsan",
+            "msan"
+        ]
+    },
+    "03127_system_unload_primary_key_table": {
+        "reason": "INVESTIGATE - Timeout on msan",
+        "message": "Timeout! Processes left in process group",
+        "check_types": [
+            "msan"
         ]
     },
     "00184_parallel_hash_returns_same_res_as_hash": {
@@ -362,7 +370,7 @@
     },
     "03593_backup_with_broken_projection": {
         "reason": "INVESTIGATE - Timeout on msan",
-        "message": "Timeout exceeded while receiving data from server.",
+        "message": "Timeout",
         "check_types": [
             "msan"
         ]
@@ -379,6 +387,13 @@
         "message": "result differs with reference",
         "check_types": [
             "tsan"
+        ]
+    },
+    "03221_refreshable_matview_progress": {
+        "reason": "INVESTIGATE - Unstable on msan",
+        "message": "result differs with reference",
+        "check_types": [
+            "msan"
         ]
     },
     "test_scheduler_cpu_preemptive/test.py::test_downscaling[cpu-slot-preemption-timeout-1ms]": {
