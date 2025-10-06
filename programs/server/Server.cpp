@@ -339,6 +339,9 @@ namespace ServerSetting
     extern const ServerSettingsBool abort_on_logical_error;
     extern const ServerSettingsUInt64 jemalloc_flush_profile_interval_bytes;
     extern const ServerSettingsBool jemalloc_flush_profile_on_memory_exceeded;
+    extern const ServerSettingsUInt64 object_storage_list_objects_cache_ttl;
+    extern const ServerSettingsUInt64 object_storage_list_objects_cache_size;
+    extern const ServerSettingsUInt64 object_storage_list_objects_cache_max_entries;
 }
 
 namespace ErrorCodes
