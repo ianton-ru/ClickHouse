@@ -121,6 +121,7 @@ env:
   build_sha: ${{ inputs.build_sha }}
   pr_number: ${{ github.event.number }}
   event_name: ${{ github.event_name }}
+  version: ${{ fromJson(inputs.workflow_config).custom_data.version.string }}
 
 jobs:
   runner_labels_setup:
