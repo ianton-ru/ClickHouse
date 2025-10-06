@@ -210,7 +210,7 @@ std::shared_ptr<IObjectIterator> StorageObjectStorageSource::createFileIterator(
             /// Iterate through disclosed globs and make a source for each file
             iterator = std::make_unique<GlobIterator>(
                 object_iterator, configuration, predicate, virtual_columns, hive_columns,
-                local_context, is_archive ? nullptr : read_keys, query_settings.list_object_keys_size,
+                local_context, is_archive ? nullptr : read_keys,
                 query_settings.throw_on_zero_files_match, file_progress_callback, std::move(cache_ptr));
         }
     }
