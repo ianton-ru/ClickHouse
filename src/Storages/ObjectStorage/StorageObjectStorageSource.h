@@ -202,7 +202,6 @@ public:
         const NamesAndTypesList & hive_columns_,
         ContextPtr context_,
         ObjectInfos * read_keys_,
-        size_t list_object_keys_size,
         bool throw_on_zero_files_match_,
         std::function<void(FileProgress)> file_progress_callback_ = {},
         std::unique_ptr<ListObjectsCacheWithKey> list_cache_ = nullptr);
