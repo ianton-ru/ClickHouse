@@ -420,6 +420,13 @@
         "reason": "INVESTIGATE - NETLINK_ERROR",
         "message": "NETLINK_ERROR"
     },
+    "test_overcommit_tracker/test.py::test_user_overcommit": {
+        "reason": "INVESTIGATE - NETLINK_ERROR on tsan",
+        "message": "NETLINK_ERROR",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "test_storage_delta/test.py::test_concurrent_queries[False]": {
         "reason": "INVESTIGATE - Unstable test"
     },
