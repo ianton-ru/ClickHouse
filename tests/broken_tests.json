@@ -324,6 +324,27 @@
             "msan"
         ]
     },
+    "03262_column_sizes_with_dynamic_structure": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "DB::Exception: Estimated query execution time",
+        "check_types": [
+            "tsan"
+        ]
+    },
+    "03096_order_by_system_tables": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "Timeout",
+        "check_types": [
+            "tsan"
+        ]
+    },
+    "02210_processors_profile_log": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "Timeout",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "03555_json_shared_data_advanced_paths_indexes": {
         "reason": "INVESTIGATE - Timeout on tsan, msan",
         "message": "Timeout",
