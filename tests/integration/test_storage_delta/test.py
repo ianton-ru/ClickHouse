@@ -101,6 +101,7 @@ def started_cluster():
             user_configs=[
                 "configs/users.d/users.xml",
                 "configs/users.d/enable_writes.xml",
+                "configs/users.d/disable_parquet_metadata_caching.xml",
             ],
             with_minio=True,
             with_azurite=True,
@@ -117,6 +118,7 @@ def started_cluster():
             user_configs=[
                 "configs/users.d/users.xml",
                 "configs/users.d/enable_writes.xml",
+                "configs/users.d/disable_parquet_metadata_caching.xml",
             ],
             with_minio=True,
             stay_alive=True,
@@ -131,6 +133,7 @@ def started_cluster():
                 "configs/config.d/named_collections.xml",
                 "configs/config.d/use_environment_credentials.xml",
             ],
+            user_configs=["configs/users.d/users.xml", "configs/users.d/disable_parquet_metadata_caching.xml"],
             env_variables={
                 "AWS_ACCESS_KEY_ID": minio_access_key,
                 "AWS_SECRET_ACCESS_KEY": minio_secret_key,
@@ -144,7 +147,7 @@ def started_cluster():
                 "configs/config.d/filesystem_caches.xml",
                 "configs/config.d/remote_servers.xml",
             ],
-            user_configs=["configs/users.d/users.xml"],
+            user_configs=["configs/users.d/users.xml", "configs/users.d/disable_parquet_metadata_caching.xml"],
             with_installed_binary=True,
             image="clickhouse/clickhouse-server",
             tag="25.3.3.42",
@@ -163,6 +166,7 @@ def started_cluster():
             user_configs=[
                 "configs/users.d/users.xml",
                 "configs/users.d/disabled_delta_kernel.xml",
+                "configs/users.d/disable_parquet_metadata_caching.xml",
             ],
             with_minio=True,
             with_azurite=True,
