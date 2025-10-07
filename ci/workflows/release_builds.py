@@ -10,11 +10,26 @@ builds_for_release_branch = [
     if "coverage" not in job.name
 ]
 
+# Make sure that builds that get tested are built first
+# Note that the release build job should not block or be blocked, it is long and it's dependencies are fast.
+BLOCKING_BUILD_JOBS = [
+    job.name
+    for job in JobConfigs.build_jobs
+    if any(substr in job.name for substr in ["binary"])
+]
+
 workflow = Workflow.Config(
     name="Release Builds",
     event=Workflow.Event.DISPATCH,
     jobs=[
-        *builds_for_release_branch,
+        *[
+            job.set_dependency(
+                BLOCKING_BUILD_JOBS
+                if job.name not in BLOCKING_BUILD_JOBS and "release" not in job.name
+                else []
+            )
+            for job in builds_for_release_branch
+        ],
         JobConfigs.docker_sever,
         JobConfigs.docker_keeper,
         *JobConfigs.install_check_master_jobs,
@@ -34,13 +49,13 @@ workflow = Workflow.Config(
     ],
     dockers=DOCKERS,
     secrets=SECRETS,
-    enable_job_filtering_by_changes=True,
-    enable_cache=True,
+    enable_job_filtering_by_changes=False,
+    enable_cache=False,
     enable_report=True,
     enable_cidb=True,
     enable_commit_status_on_failure=True,
     pre_hooks=[
-        "python3 ./ci/jobs/scripts/workflow_hooks/store_data.py",
+        # "python3 ./ci/jobs/scripts/workflow_hooks/store_data.py",
         "python3 ./ci/jobs/scripts/workflow_hooks/version_log.py",
     ],
     workflow_filter_hooks=[should_skip_job],
