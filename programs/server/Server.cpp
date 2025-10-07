@@ -352,7 +352,6 @@ namespace ErrorCodes
 namespace FileCacheSetting
 {
     extern const FileCacheSettingsBool load_metadata_asynchronously;
-    extern const ServerSettingsUInt64 input_format_parquet_metadata_cache_max_size;
     extern const ServerSettingsUInt64 object_storage_list_objects_cache_size;
     extern const ServerSettingsUInt64 object_storage_list_objects_cache_max_entries;
     extern const ServerSettingsUInt64 object_storage_list_objects_cache_ttl;

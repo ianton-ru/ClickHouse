@@ -237,8 +237,6 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"enable_scopes_for_with_statement", true, true, "New setting for backward compatibility with the old analyzer."},
             /// Release closed. Please use 25.5
             // Altinity Antalya modifications atop of 25.2
-            {"object_storage_cluster", "", "", "New setting"},
-            {"object_storage_max_nodes", 0, 0, "New setting"},
             {"use_object_storage_list_objects_cache", true, false, "New setting."},
         });
         addSettingsChanges(settings_changes_history, "25.3",
