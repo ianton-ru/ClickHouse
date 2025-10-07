@@ -9,7 +9,6 @@
 
 #include <Poco/Timestamp.h>
 #include <Poco/Util/AbstractConfiguration.h>
-#include <Poco/JSON/Object.h>
 #include <Core/Defines.h>
 #include <IO/ReadSettings.h>
 #include <IO/WriteSettings.h>

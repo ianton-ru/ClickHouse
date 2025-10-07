@@ -108,7 +108,6 @@ extern const SettingsBool use_roaring_bitmap_iceberg_positional_deletes;
 extern const SettingsString iceberg_metadata_compression_method;
 extern const SettingsBool allow_experimental_insert_into_iceberg;
 extern const SettingsBool allow_experimental_iceberg_compaction;
-extern const SettingsBool allow_experimental_iceberg_read_optimization;
 }
 
 namespace
@@ -820,12 +819,14 @@ void IcebergMetadata::addDeleteTransformers(
 
     if (!iceberg_object_info->position_deletes_objects.empty())
     {
+        LOG_DEBUG(log, "Constructing filter transform for position delete, there are {} delete objects", iceberg_object_info->position_deletes_objects.size());
         builder.addSimpleTransform(
             [&](const SharedHeader & header)
             { return iceberg_object_info->getPositionDeleteTransformer(object_storage, header, format_settings, local_context); });
     }
     const auto & delete_files = iceberg_object_info->equality_deletes_objects;
-    LOG_DEBUG(log, "Constructing filter transform for equality delete, there are {} delete files", delete_files.size());
+    if (!delete_files.empty())
+        LOG_DEBUG(log, "Constructing filter transform for equality delete, there are {} delete files", delete_files.size());
     for (const ManifestFileEntry & delete_file : delete_files)
     {
         auto simple_transform_adder = [&](const SharedHeader & header)

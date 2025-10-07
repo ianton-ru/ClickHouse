@@ -3292,3 +3292,12 @@ def test_read_constant_columns_optimization(started_cluster, storage_type, run_o
     check_events(const_partial_query_id, event, 4) # 1-2025, 6-2025 and 2-2025 must not be read
     check_events(const_partial2_query_id, event, 3) # 6-2025 must not be read, 1-2024, 1-2025, 2-2025 don't have new column 'name'
     check_events(count_query_id, event, 0) # All must not be read
+
+    def compare_selects(query):
+        result_expected = instance.query(f"{query} SETTINGS allow_experimental_iceberg_read_optimization=0")
+        result_optimized = instance.query(f"{query} SETTINGS allow_experimental_iceberg_read_optimization=1")
+        assert result_expected == result_optimized
+
+    compare_selects(f"SELECT _path,* FROM {creation_expression} ORDER BY ALL")
+    compare_selects(f"SELECT _path,* FROM {creation_expression} WHERE name_old='vasily' ORDER BY ALL")
+    compare_selects(f"SELECT _path,* FROM {creation_expression} WHERE ((tag + length(name_old)) % 2 = 1) ORDER BY ALL")

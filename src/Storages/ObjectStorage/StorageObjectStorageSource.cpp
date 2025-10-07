@@ -273,8 +273,6 @@ Chunk StorageObjectStorageSource::generate()
 {
     lazyInitialize();
 
-    bool use_iceberg_read_optimization = read_context->getSettingsRef()[Setting::allow_experimental_iceberg_read_optimization];
-
     while (true)
     {
         if (isCancelled() || !reader)
@@ -330,14 +328,14 @@ Chunk StorageObjectStorageSource::generate()
                  .data_lake_snapshot_version = file_iterator->getSnapshotVersion()},
                 read_context);
 
-            if (use_iceberg_read_optimization)
+            /// Not empty when allow_experimental_iceberg_read_optimization=true
+            /// and some columns were removed from read list as columns with constant values.
+            /// Restore data for these columns.
+            for (const auto & constant_column : reader.constant_columns_with_values)
             {
-                for (const auto & constant_column : reader.constant_columns_with_values)
-                {
-                    chunk.addColumn(constant_column.first,
-                        constant_column.second.name_and_type.type->createColumnConst(
-                            chunk.getNumRows(), constant_column.second.value)->convertToFullColumnIfConst());
-                }
+                chunk.addColumn(constant_column.first,
+                    constant_column.second.name_and_type.type->createColumnConst(
+                        chunk.getNumRows(), constant_column.second.value));
             }
 
 #if USE_PARQUET && USE_AWS_S3
@@ -555,18 +553,19 @@ StorageObjectStorageSource::ReaderHolder StorageObjectStorageSource::createReade
                     else
                         rows_count_from_metadata = column.second.rows_count;
                 }
+
                 if (column.second.hyperrectangle.has_value())
                 {
+                    auto column_name = column.first;
+
+                    auto i_column = requested_columns_list.find(column_name);
+                    if (i_column == requested_columns_list.end())
+                        continue;
+
                     if (column.second.hyperrectangle.value().isPoint() &&
                         (!column.second.nulls_count.has_value() || column.second.nulls_count.value() <= 0))
                     {
-                        auto column_name = column.first;
-
-                        auto i_column = requested_columns_list.find(column_name);
-                        if (i_column == requested_columns_list.end())
-                            continue;
-
-                        /// isPoint() method checks that left==right
+                        /// isPoint() method checks before that left==right
                         constant_columns_with_values[i_column->second.first] =
                             ConstColumnWithValue{
                                 i_column->second.second,
@@ -581,17 +580,9 @@ StorageObjectStorageSource::ReaderHolder StorageObjectStorageSource::createReade
                             column.second.hyperrectangle.value().left.dump());
                     }
                     else if (column.second.rows_count.has_value() && column.second.nulls_count.has_value()
-                            && column.second.rows_count.value() == column.second.nulls_count.value())
+                            && column.second.rows_count.value() == column.second.nulls_count.value()
+                            && i_column->second.second.type->isNullable())
                     {
-                        auto column_name = column.first;
-
-                        auto i_column = requested_columns_list.find(column_name);
-                        if (i_column == requested_columns_list.end())
-                            continue;
-
-                        if (!i_column->second.second.type->isNullable())
-                            continue;
-
                         constant_columns_with_values[i_column->second.first] =
                             ConstColumnWithValue{
                                 i_column->second.second,
@@ -660,6 +651,8 @@ StorageObjectStorageSource::ReaderHolder StorageObjectStorageSource::createReade
             columns.emplace_back(type->createColumn(), type, name);
         builder.init(Pipe(std::make_shared<ConstChunkGenerator>(
                               std::make_shared<const Block>(columns), *num_rows_from_cache, max_block_size)));
+        if (!constant_columns.empty())
+            configuration->addDeleteTransformers(object_info, builder, format_settings, context_);
     }
     else
     {
