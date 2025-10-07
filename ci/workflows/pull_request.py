@@ -34,7 +34,7 @@ workflow = Workflow.Config(
             job.set_dependency(
                 [
                     # JobNames.STYLE_CHECK, # NOTE (strtgbb): we don't run style check
-                    JobNames.FAST_TEST,
+                    # JobNames.FAST_TEST, # NOTE (strtgbb): this takes too long, revisit later
                     # JobConfigs.tidy_build_arm_jobs[0].name, # NOTE (strtgbb): this takes too long, revisit later
                 ]
             )
@@ -56,7 +56,7 @@ workflow = Workflow.Config(
         JobConfigs.bugfix_validation_it_job.set_dependency(
             [
                 # JobNames.STYLE_CHECK, # NOTE (strtgbb): we don't run style check
-                JobNames.FAST_TEST,
+                # JobNames.FAST_TEST, # NOTE (strtgbb): we don't run fast tests
                 # JobConfigs.tidy_build_arm_jobs[0].name, # NOTE (strtgbb): we don't run tidy build jobs
             ]
         ),
