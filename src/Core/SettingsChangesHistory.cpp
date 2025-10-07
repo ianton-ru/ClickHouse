@@ -110,6 +110,7 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"allow_experimental_lightweight_update", false, true, "Lightweight updates were moved to Beta."},
             {"s3_slow_all_threads_after_retryable_error", false, false, "Added an alias for setting `backup_slow_all_threads_after_retryable_s3_error`"},
             {"iceberg_metadata_log_level", "none", "none", "New setting."},
+            {"use_object_storage_list_objects_cache", false, false, "New setting."},
         });
         addSettingsChanges(settings_changes_history, "25.7",
         {
@@ -236,8 +237,6 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"function_date_trunc_return_type_behavior", 1, 0, "Change the result type for dateTrunc function for DateTime64/Date32 arguments to DateTime64/Date32 regardless of time unit to get correct result for negative values"},
             {"enable_scopes_for_with_statement", true, true, "New setting for backward compatibility with the old analyzer."},
             /// Release closed. Please use 25.5
-            // Altinity Antalya modifications atop of 25.2
-            {"use_object_storage_list_objects_cache", true, false, "New setting."},
         });
         addSettingsChanges(settings_changes_history, "25.3",
         {
