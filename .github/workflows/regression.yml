@@ -1015,7 +1015,7 @@ jobs:
               --gcs-key-id ${{ secrets.REGRESSION_GCS_KEY_ID }}
               --gcs-key-secret ${{ secrets.REGRESSION_GCS_KEY_SECRET }}
               --gcs-uri ${{ secrets.REGRESSION_GCS_URI }}
-              ${{ matrix.STORAGE == 'local' && '' || format('--with-{0}', matrix.STORAGE) }}
+              ${{ matrix.STORAGE != 'local' && format('--with-{0}', matrix.STORAGE) || '' }}
               --attr project="$GITHUB_REPOSITORY" project.id="$GITHUB_REPOSITORY_ID" package="${{ env.clickhouse_path }}" version="${{ env.version }}" user.name="$GITHUB_ACTOR" repository="https://github.com/Altinity/clickhouse-regression" commit.hash="$(git rev-parse HEAD)" job.name="$GITHUB_JOB (${{ matrix.STORAGE }})" job.retry=$GITHUB_RUN_ATTEMPT job.url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" arch="$(uname -i)"
               ${{ env.args }} || EXITCODE=$?;
               .github/add_link_to_logs.sh;
