@@ -1,4 +1,11 @@
 {
+    "02844_max_backup_bandwidth_s3": {
+        "reason": "INVESTIGATE - Fails on debug",
+        "message": "result differs with reference",
+        "check_types": [
+            "debug"
+        ]
+    },
     "03455_direct_io_read_array_values": {
         "reason": "INVESTIGATE - Unstable on tsan",
         "check_types": [
@@ -26,6 +33,13 @@
             "tsan"
         ]
     },
+    "02435_rollback_cancelled_queries": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "DB::Exception: There is no current transaction. (INVALID_TRANSACTION)",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "02443_detach_attach_partition": {
         "reason": "INVESTIGATE - Unstable",
         "message": "Cannot rename parts to perform operation on them: Code: 521. DB::ErrnoException: Cannot rename"
@@ -37,10 +51,18 @@
             "tsan"
         ]
     },
+    "03100_lwu_03_join": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "DB::Exception: Timeout exceeded (180 s) while flushing system log",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "02479_race_condition_between_insert_and_droppin_mv": {
         "reason": "INVESTIGATE - Timeout in ClickHouse query",
         "check_types": [
-            "tsan"
+            "tsan",
+            "msan"
         ]
     },
     "01037_polygon_dicts_correctness_fast": {
@@ -61,7 +83,8 @@
     "03357_join_pk_sharding": {
         "reason": "INVESTIGATE - Timeout. Unstable?",
         "check_types": [
-            "tsan"
+            "tsan",
+            "msan"
         ]
     },
     "01630_simple_aggregate_all_functions_in_summing_merge_tree": {
@@ -179,7 +202,6 @@
     },
     "02581_share_big_sets_between_mutation_tasks_with_storage_set": {
         "reason": "INVESTIGATE - Timeout on tsan",
-        "message": "Timeout! Processes left in process group",
         "check_types": [
             "tsan"
         ]
@@ -214,17 +236,26 @@
         ]
     },
     "00172_hits_joins": {
-        "reason": "INVESTIGATE - Timeout on tsan",
+        "reason": "INVESTIGATE - Timeout on tsan, msan",
         "message": "Timeout! Processes left in process group",
         "check_types": [
-            "tsan"
+            "tsan",
+            "msan"
         ]
     },
     "00084_external_aggregation": {
-        "reason": "INVESTIGATE - Timeout on tsan",
+        "reason": "INVESTIGATE - Timeout on tsan, msan",
         "message": "Timeout! Processes left in process group",
         "check_types": [
-            "tsan"
+            "tsan",
+            "msan"
+        ]
+    },
+    "03127_system_unload_primary_key_table": {
+        "reason": "INVESTIGATE - Timeout on msan",
+        "message": "Timeout! Processes left in process group",
+        "check_types": [
+            "msan"
         ]
     },
     "00184_parallel_hash_returns_same_res_as_hash": {
@@ -239,6 +270,13 @@
         "message": "Timeout! Processes left in process group",
         "check_types": [
             "tsan",
+            "msan"
+        ]
+    },
+    "00159_parallel_formatting_json_and_friends_1": {
+        "reason": "INVESTIGATE - Timeout on msan",
+        "message": "Timeout! Processes left in process group",
+        "check_types": [
             "msan"
         ]
     },
@@ -257,11 +295,13 @@
         ]
     },
     "00024_random_counters": {
-        "reason": "INVESTIGATE - Timeout on tsan, coverage",
+        "reason": "INVESTIGATE - Timeout on tsan, coverage, asan, msan",
         "message": "Timeout! Processes left in process group",
         "check_types": [
             "tsan",
-            "coverage"
+            "coverage",
+            "asan",
+            "msan"
         ]
     },
     "00159_parallel_formatting_json_and_friends_2": {
@@ -273,7 +313,7 @@
     },
     "01782_field_oom": {
         "reason": "INVESTIGATE - Timeout on tsan",
-        "message": "Timeout! Processes left in process group",
+        "message": "Timeout",
         "check_types": [
             "tsan"
         ]
@@ -284,9 +324,30 @@
             "msan"
         ]
     },
+    "03262_column_sizes_with_dynamic_structure": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "DB::Exception: Estimated query execution time",
+        "check_types": [
+            "tsan"
+        ]
+    },
+    "03096_order_by_system_tables": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "Timeout",
+        "check_types": [
+            "tsan"
+        ]
+    },
+    "02210_processors_profile_log": {
+        "reason": "INVESTIGATE - Unstable on tsan",
+        "message": "Timeout",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "03555_json_shared_data_advanced_paths_indexes": {
         "reason": "INVESTIGATE - Timeout on tsan, msan",
-        "message": "Timeout! Processes left in process group",
+        "message": "Timeout",
         "check_types": [
             "tsan",
             "msan"
@@ -299,11 +360,40 @@
             "tsan"
         ]
     },
-    "00284_external_aggregation": {
-        "reason": "INVESTIGATE - Timeout in query on tsan",
-        "message": "DB::Exception: Timeout exceeded",
+    "03100_lwu_23_apply_patches": {
+        "reason": "INVESTIGATE - Timeout on tsan",
+        "message": "Timeout exceeded (180 s) while flushing system log",
         "check_types": [
             "tsan"
+        ]
+    },
+    "00284_external_aggregation": {
+        "reason": "INVESTIGATE - Timeout in query on tsan, msan",
+        "message": "DB::Exception: Timeout exceeded",
+        "check_types": [
+            "tsan",
+            "msan"
+        ]
+    },
+    "03550_analyzer_remote_view_columns": {
+        "reason": "INVESTIGATE - Timeout on tsan",
+        "message": "DB::Exception: Timeout exceeded (180 s) while flushing system log",
+        "check_types": [
+            "tsan"
+        ]
+    },
+    "01630_simple_aggregate_all_functions_in_aggregating_merge_tree": {
+        "reason": "INVESTIGATE - Timeout on tsan",
+        "message": "Timeout exceeded",
+        "check_types": [
+            "tsan"
+        ]
+    },
+    "03593_backup_with_broken_projection": {
+        "reason": "INVESTIGATE - Timeout on msan",
+        "message": "Timeout",
+        "check_types": [
+            "msan"
         ]
     },
     "00159_parallel_formatting_http": {
@@ -320,11 +410,19 @@
             "tsan"
         ]
     },
+    "03221_refreshable_matview_progress": {
+        "reason": "INVESTIGATE - Unstable on msan",
+        "message": "result differs with reference",
+        "check_types": [
+            "msan"
+        ]
+    },
     "test_scheduler_cpu_preemptive/test.py::test_downscaling[cpu-slot-preemption-timeout-1ms]": {
-        "reason": "INVESTIGATE - Unstable on tsan",
+        "reason": "INVESTIGATE - Unstable on tsan, asan",
         "message": "Failed: Timeout >900.0s",
         "check_types": [
-            "tsan"
+            "tsan",
+            "asan"
         ]
     },
     "test_grpc_protocol/test.py::test_ipv6_select_one": {
@@ -343,15 +441,24 @@
         "reason": "INVESTIGATE - NETLINK_ERROR",
         "message": "NETLINK_ERROR"
     },
+    "test_overcommit_tracker/test.py::test_user_overcommit": {
+        "reason": "INVESTIGATE - NETLINK_ERROR on tsan",
+        "message": "NETLINK_ERROR",
+        "check_types": [
+            "tsan"
+        ]
+    },
     "test_storage_delta/test.py::test_concurrent_queries[False]": {
-        "reason": "INVESTIGATE - NETLINK_ERROR",
-        "message": "NETLINK_ERROR"
+        "reason": "INVESTIGATE - Unstable test"
     },
     "test_storage_s3_queue/test_0.py::test_streaming_to_many_views[unordered]": {
         "reason": "INVESTIGATE: Broken test?"
     },
     "test_storage_s3_queue/test_0.py::test_streaming_to_many_views[ordered]": {
         "reason": "INVESTIGATE: Broken test?"
+    },
+    "test_storage_s3_queue/test_2.py::test_shards_distributed[unordered-1]": {
+        "reason": "INVESTIGATE: Unstable test"
     },
     "test_storage_s3_queue/test_4.py::test_list_and_delete_race": {
         "reason": "KNOWN: Unstable test",
@@ -416,5 +523,25 @@
         "check_types": [
             "tsan"
         ]
+    },
+    "test_database_hms/test.py::test_list_tables": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_database_hms/test.py::test_many_namespaces": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_database_hms/test.py::test_select": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_database_hms/test.py::test_tables_with_same_location": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_database_hms/test.py::test_hide_sensitive_info": {
+        "reason": "KNOWN: Occasional timeout",
+        "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
     }
 }
