@@ -89,7 +89,6 @@ jobs:
   dockers_build_amd:
     runs-on: [self-hosted, altinity-on-demand, altinity-style-checker]
     needs: [config_workflow]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'RG9ja2VycyBCdWlsZCAoYW1kKQ==') }}
     name: "Dockers Build (amd)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -137,7 +136,6 @@ jobs:
   dockers_build_arm:
     runs-on: [self-hosted, altinity-on-demand, altinity-style-checker-aarch64]
     needs: [config_workflow]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'RG9ja2VycyBCdWlsZCAoYXJtKQ==') }}
     name: "Dockers Build (arm)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -184,8 +182,7 @@ jobs:
 
   build_amd_debug:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFtZF9kZWJ1Zyk=') }}
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_debug)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -233,7 +230,6 @@ jobs:
   build_amd_release:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFtZF9yZWxlYXNlKQ==') }}
     name: "Build (amd_release)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -280,8 +276,7 @@ jobs:
 
   build_amd_asan:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFtZF9hc2FuKQ==') }}
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_asan)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -328,8 +323,7 @@ jobs:
 
   build_amd_tsan:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFtZF90c2FuKQ==') }}
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_tsan)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -376,8 +370,7 @@ jobs:
 
   build_amd_msan:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFtZF9tc2FuKQ==') }}
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_msan)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -424,8 +417,7 @@ jobs:
 
   build_amd_ubsan:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
-    needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFtZF91YnNhbik=') }}
+    needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary, build_arm_binary]
     name: "Build (amd_ubsan)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -473,7 +465,6 @@ jobs:
   build_amd_binary:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFtZF9iaW5hcnkp') }}
     name: "Build (amd_binary)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -521,7 +512,6 @@ jobs:
   build_arm_release:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFybV9yZWxlYXNlKQ==') }}
     name: "Build (arm_release)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -569,7 +559,6 @@ jobs:
   build_arm_binary:
     runs-on: [self-hosted, altinity-on-demand, altinity-builder]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'QnVpbGQgKGFybV9iaW5hcnkp') }}
     name: "Build (arm_binary)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -617,7 +606,6 @@ jobs:
   docker_server_image:
     runs-on: [self-hosted, altinity-on-demand, altinity-style-checker]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_release, build_arm_release]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'RG9ja2VyIHNlcnZlciBpbWFnZQ==') }}
     name: "Docker server image"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -665,7 +653,6 @@ jobs:
   docker_keeper_image:
     runs-on: [self-hosted, altinity-on-demand, altinity-style-checker]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_release, build_arm_release]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'RG9ja2VyIGtlZXBlciBpbWFnZQ==') }}
     name: "Docker keeper image"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -713,7 +700,6 @@ jobs:
   install_packages_amd_release:
     runs-on: [self-hosted, altinity-on-demand, altinity-func-tester]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_release]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'SW5zdGFsbCBwYWNrYWdlcyAoYW1kX3JlbGVhc2Up') }}
     name: "Install packages (amd_release)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -761,7 +747,6 @@ jobs:
   install_packages_arm_release:
     runs-on: [self-hosted, altinity-on-demand, altinity-func-tester-aarch64]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_arm_release]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'SW5zdGFsbCBwYWNrYWdlcyAoYXJtX3JlbGVhc2Up') }}
     name: "Install packages (arm_release)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -809,7 +794,6 @@ jobs:
   stateless_tests_amd_binary_old_analyzer_s3_storage_databasereplicated_parallel:
     runs-on: [self-hosted, altinity-on-demand, altinity-func-tester]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'U3RhdGVsZXNzIHRlc3RzIChhbWRfYmluYXJ5LCBvbGQgYW5hbHl6ZXIsIHMzIHN0b3JhZ2UsIERhdGFiYXNlUmVwbGljYXRlZCwgcGFyYWxsZWwp') }}
     name: "Stateless tests (amd_binary, old analyzer, s3 storage, DatabaseReplicated, parallel)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -857,7 +841,6 @@ jobs:
   stateless_tests_amd_binary_old_analyzer_s3_storage_databasereplicated_sequential:
     runs-on: [self-hosted, altinity-on-demand, altinity-func-tester]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'U3RhdGVsZXNzIHRlc3RzIChhbWRfYmluYXJ5LCBvbGQgYW5hbHl6ZXIsIHMzIHN0b3JhZ2UsIERhdGFiYXNlUmVwbGljYXRlZCwgc2VxdWVudGlhbCk=') }}
     name: "Stateless tests (amd_binary, old analyzer, s3 storage, DatabaseReplicated, sequential)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -905,7 +888,6 @@ jobs:
   stateless_tests_amd_binary_parallelreplicas_s3_storage_parallel:
     runs-on: [self-hosted, altinity-on-demand, altinity-func-tester]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'U3RhdGVsZXNzIHRlc3RzIChhbWRfYmluYXJ5LCBQYXJhbGxlbFJlcGxpY2FzLCBzMyBzdG9yYWdlLCBwYXJhbGxlbCk=') }}
     name: "Stateless tests (amd_binary, ParallelReplicas, s3 storage, parallel)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -953,7 +935,6 @@ jobs:
   stateless_tests_amd_binary_parallelreplicas_s3_storage_sequential:
     runs-on: [self-hosted, altinity-on-demand, altinity-func-tester]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_amd_binary]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'U3RhdGVsZXNzIHRlc3RzIChhbWRfYmluYXJ5LCBQYXJhbGxlbFJlcGxpY2FzLCBzMyBzdG9yYWdlLCBzZXF1ZW50aWFsKQ==') }}
     name: "Stateless tests (amd_binary, ParallelReplicas, s3 storage, sequential)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -1001,7 +982,6 @@ jobs:
   stateless_tests_arm_binary_parallel:
     runs-on: [self-hosted, altinity-on-demand, altinity-func-tester-aarch64]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_arm_binary]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'U3RhdGVsZXNzIHRlc3RzIChhcm1fYmluYXJ5LCBwYXJhbGxlbCk=') }}
     name: "Stateless tests (arm_binary, parallel)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}
@@ -1049,7 +1029,6 @@ jobs:
   stateless_tests_arm_binary_sequential:
     runs-on: [self-hosted, altinity-on-demand, altinity-func-tester-aarch64]
     needs: [config_workflow, dockers_build_amd, dockers_build_arm, build_arm_binary]
-    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'U3RhdGVsZXNzIHRlc3RzIChhcm1fYmluYXJ5LCBzZXF1ZW50aWFsKQ==') }}
     name: "Stateless tests (arm_binary, sequential)"
     outputs:
       data: ${{ steps.run.outputs.DATA }}

@@ -149,7 +149,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        SUITE: [aes_encryption, atomic_insert, base_58, data_types, datetime64_extended_range, disk_level_encryption, dns, engines, example, extended_precision_data_types, functions, kafka, kerberos, key_value, lightweight_delete, memory, part_moves_between_shards, selects, session_timezone, swarms, tiered_storage, version, window_functions]
+        SUITE: [aes_encryption, atomic_insert, base_58, data_types, datetime64_extended_range, disk_level_encryption, dns, engines, example, extended_precision_data_types, functions, kafka, kerberos, key_value, lightweight_delete, memory, part_moves_between_shards, selects, session_timezone, swarms, version, window_functions]
     needs: [runner_labels_setup]
     runs-on: ${{ fromJson(needs.runner_labels_setup.outputs.runner_labels) }}
     timeout-minutes: ${{ inputs.timeout_minutes }}
@@ -299,7 +299,7 @@ jobs:
           REPORTS_PATH=${{ runner.temp }}/reports_dir
           SUITE=alter
           STORAGE=/${{ matrix.ONLY }}_partition
-          PART='${{ matrix.PART }}'
+          PART=${{ matrix.PART }}
           EOF
       - name: Setup
         run: .github/setup.sh
@@ -971,7 +971,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        STORAGE: [minio, s3amazon, s3gcs]
+        STORAGE: [local, minio, s3amazon, s3gcs]
     needs: [runner_labels_setup]
     runs-on: ${{ fromJson(needs.runner_labels_setup.outputs.runner_labels) }}
     timeout-minutes: ${{ inputs.timeout_minutes }}
@@ -1014,7 +1014,7 @@ jobs:
               --gcs-key-id ${{ secrets.REGRESSION_GCS_KEY_ID }}
               --gcs-key-secret ${{ secrets.REGRESSION_GCS_KEY_SECRET }}
               --gcs-uri ${{ secrets.REGRESSION_GCS_URI }}
-              --with-${{ matrix.STORAGE }}
+              ${{ matrix.STORAGE != 'local' && format('--with-{0}', matrix.STORAGE) || '' }}
               --attr project="$GITHUB_REPOSITORY" project.id="$GITHUB_REPOSITORY_ID" package="${{ env.clickhouse_path }}" version="${{ env.version }}" user.name="$GITHUB_ACTOR" repository="https://github.com/Altinity/clickhouse-regression" commit.hash="$(git rev-parse HEAD)" job.name="$GITHUB_JOB (${{ matrix.STORAGE }})" job.retry=$GITHUB_RUN_ATTEMPT job.url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" arch="$(uname -i)"
               ${{ env.args }} || EXITCODE=$?;
               .github/add_link_to_logs.sh;

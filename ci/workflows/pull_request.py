@@ -137,7 +137,7 @@ workflow = Workflow.Config(
     workflow_filter_hooks=[should_skip_job],
     post_hooks=[
         # "python3 ./ci/jobs/scripts/workflow_hooks/feature_docs.py", # NOTE (strtgbb): we don't build docs
-        "python3 ./ci/jobs/scripts/workflow_hooks/new_tests_check.py",
+        # "python3 ./ci/jobs/scripts/workflow_hooks/new_tests_check.py", # NOTE (strtgbb): we don't use this
         # "python3 ./ci/jobs/scripts/workflow_hooks/can_be_merged.py", # NOTE (strtgbb): relies on labels we don't use
     ],
 )
