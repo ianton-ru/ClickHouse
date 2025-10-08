@@ -113,8 +113,8 @@ jobs:
               ' result.json >> $GITHUB_STEP_SUMMARY
             fi
 
-            HIGH_COUNT=$(jq -r '.matches | map(.vulnerability.severity) | map(select(. == "High")) | length' result.json)
-            CRITICAL_COUNT=$(jq -r '.matches | map(.vulnerability.severity) | map(select(. == "Critical")) | length' result.json)
+            HIGH_COUNT=$(jq -r '.matches | map(.vulnerability) | unique_by(.id) | map(.severity) | map(select(. == "High")) | length' result.json)
+            CRITICAL_COUNT=$(jq -r '.matches | map(.vulnerability) | unique_by(.id) | map(.severity) | map(select(. == "Critical")) | length' result.json)
             TOTAL_HIGH_CRITICAL=$((HIGH_COUNT + CRITICAL_COUNT))
             echo "total_high_critical=$TOTAL_HIGH_CRITICAL" >> $GITHUB_OUTPUT
 
