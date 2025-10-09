@@ -316,7 +316,10 @@ void IcebergMetadata::updateSnapshot(ContextPtr local_context, Poco::JSON::Objec
                 persistent_components,
                 local_context,
                 getProperFilePathFromMetadataInfo(
-                snapshot->getValue<String>(f_manifest_list), configuration_ptr->getPathForRead().path, persistent_components.table_location),
+                    snapshot->getValue<String>(f_manifest_list),
+                    configuration_ptr->getPathForRead().path,
+                    persistent_components.table_location,
+                    configuration_ptr->getNamespace()),
                 log),
                 relevant_snapshot_id,
                 total_rows,
@@ -952,7 +955,7 @@ ColumnMapperPtr IcebergMetadata::getColumnMapperForObject(ObjectInfoPtr object_i
     if (!iceberg_object_info)
         return nullptr;
     auto configuration_ptr = configuration.lock();
-    if (Poco::toLower(configuration_ptr->format) != "parquet")
+    if (Poco::toLower(configuration_ptr->getFormat()) != "parquet")
         return nullptr;
 
     return persistent_components.schema_processor->getColumnMapperById(iceberg_object_info->underlying_format_read_schema_id);
@@ -961,7 +964,7 @@ ColumnMapperPtr IcebergMetadata::getColumnMapperForObject(ObjectInfoPtr object_i
 ColumnMapperPtr IcebergMetadata::getColumnMapperForCurrentSchema() const
 {
     auto configuration_ptr = configuration.lock();
-    if (Poco::toLower(configuration_ptr->format) != "parquet")
+    if (Poco::toLower(configuration_ptr->getFormat()) != "parquet")
         return nullptr;
     SharedLockGuard lock(mutex);
     return persistent_components.schema_processor->getColumnMapperById(relevant_snapshot_schema_id);

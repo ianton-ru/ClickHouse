@@ -42,6 +42,8 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
         addSettingsChanges(settings_changes_history, "25.8.9.2000",
         {
             {"object_storage_cluster_join_mode", "allow", "allow", "New setting"},
+            {"object_storage_cluster", "", "", "Antalya: New setting"},
+            {"object_storage_max_nodes", 0, 0, "Antalya: New setting"},
         });
         addSettingsChanges(settings_changes_history, "25.8",
         {
@@ -136,6 +138,15 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"distributed_plan_force_shuffle_aggregation", 0, 0, "New experimental setting"},
             {"allow_experimental_insert_into_iceberg", false, false, "New setting."},
             /// RELEASE CLOSED
+        });
+        addSettingsChanges(settings_changes_history, "25.6.5.2000",
+        {
+            {"allow_experimental_database_iceberg", false, true, "Turned ON by default for Antalya"},
+            {"allow_experimental_database_unity_catalog", false, true, "Turned ON by default for Antalya"},
+            {"allow_experimental_database_glue_catalog", false, true, "Turned ON by default for Antalya"},
+            {"output_format_parquet_enum_as_byte_array", true, true, "Enable writing Enum as byte array in Parquet by default"},
+            {"object_storage_cluster", "", "", "New setting"},
+            {"object_storage_max_nodes", 0, 0, "New setting"},
         });
         addSettingsChanges(settings_changes_history, "25.6",
         {

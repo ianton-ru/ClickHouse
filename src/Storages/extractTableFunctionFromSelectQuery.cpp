@@ -35,4 +35,12 @@ ASTFunction * extractTableFunctionFromSelectQuery(ASTPtr & query)
     return table_function_ast->as<ASTFunction>();
 }
 
+ASTExpressionList * extractTableFunctionArgumentsFromSelectQuery(ASTPtr & query)
+{
+    auto * table_function = extractTableFunctionFromSelectQuery(query);
+    if (!table_function)
+        return nullptr;
+    return table_function->arguments->as<ASTExpressionList>();
+}
+
 }
