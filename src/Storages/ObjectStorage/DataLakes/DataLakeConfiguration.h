@@ -444,7 +444,7 @@ public:
     bool isPathInArchiveWithGlobs() const override { return getImpl().isPathInArchiveWithGlobs(); }
     std::string getPathInArchive() const override { return getImpl().getPathInArchive(); }
 
-    void check(ContextPtr context) const override { getImpl().check(context); }
+    void check(ContextPtr context) override { getImpl().check(context); }
     void validateNamespace(const String & name) const override { getImpl().validateNamespace(name); }
 
     ObjectStoragePtr createObjectStorage(ContextPtr context, bool is_readonly) override
