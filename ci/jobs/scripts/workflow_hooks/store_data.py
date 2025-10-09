@@ -1,5 +1,4 @@
 import copy
-import re
 
 from ci.defs.job_configs import JobConfigs
 from ci.jobs.scripts.clickhouse_version import CHVersion
@@ -7,13 +6,6 @@ from ci.praktika.digest import Digest
 from ci.praktika.gh import GH
 from ci.praktika.info import Info
 from ci.praktika.utils import Shell
-
-def get_ci_exclude_tags(pr_body):
-    pattern = r"(#|- \[x\] +<!---ci_exclude_)([|\w]+)"
-    matches = []
-    for match in re.findall(pattern, pr_body):
-        matches.extend(match[-1].split("|"))
-    return matches
 
 if __name__ == "__main__":
     info = Info()
@@ -30,9 +22,6 @@ if __name__ == "__main__":
     some_build_job.provides = []
     digest = Digest().calc_job_digest(some_build_job, {}, {}).split("-")[0]
     info.store_kv_data("build_digest", digest)
-
-    # store ci exclude tags
-    info.store_kv_data("ci_exclude_tags", get_ci_exclude_tags(info.pr_body))
 
     if info.git_branch == "master" and info.repo_name == "ClickHouse/ClickHouse":
         # store previous commits for perf tests

@@ -133,7 +133,7 @@ workflow = Workflow.Config(
         "python3 ./ci/jobs/scripts/workflow_hooks/version_log.py",
         # "python3 ./ci/jobs/scripts/workflow_hooks/quick_sync.py", # NOTE (strtgbb): we don't do this
         # "python3 ./ci/jobs/scripts/workflow_hooks/team_notifications.py",
-        "python3 ./ci/jobs/scripts/workflow_hooks/regression_config.py",
+        "python3 ./ci/jobs/scripts/workflow_hooks/parse_ci_tags.py",
     ],
     workflow_filter_hooks=[should_skip_job],
     post_hooks=[
