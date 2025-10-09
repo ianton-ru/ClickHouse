@@ -297,7 +297,7 @@ IcebergIterator::IcebergIterator(
               blocking_queue.finish();
           }))
     , callback(std::move(callback_))
-    , format(configuration_.lock()->getFormat)
+    , format(configuration_.lock()->getFormat())
     , compression_method(configuration_.lock()->getCompressionMethod())
     , persistent_components(persistent_components_)
     , table_schema_id(table_snapshot_->schema_id)
