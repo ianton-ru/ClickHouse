@@ -59,56 +59,55 @@ std::optional<ColumnsDescription> StorageObjectStorageConfiguration::tryGetTable
 }
 
 void StorageObjectStorageConfiguration::initialize(
-    StorageObjectStorageConfiguration & configuration_to_initialize,
     ASTs & engine_args,
     ContextPtr local_context,
     bool with_table_structure)
 {
     if (auto named_collection = tryGetNamedCollectionWithOverrides(engine_args, local_context))
-        configuration_to_initialize.fromNamedCollection(*named_collection, local_context);
+        fromNamedCollection(*named_collection, local_context);
     else
-        configuration_to_initialize.fromAST(engine_args, local_context, with_table_structure);
+        fromAST(engine_args, local_context, with_table_structure);
 
-    if (configuration_to_initialize.isNamespaceWithGlobs())
+    if (isNamespaceWithGlobs())
         throw Exception(ErrorCodes::BAD_ARGUMENTS,
-                        "Expression can not have wildcards inside {} name", configuration_to_initialize.getNamespaceType());
+                        "Expression can not have wildcards inside {} name", getNamespaceType());
 
-    if (configuration_to_initialize.isDataLakeConfiguration())
+    if (isDataLakeConfiguration())
     {
-        if (configuration_to_initialize.partition_strategy_type != PartitionStrategyFactory::StrategyType::NONE)
+        if (getPartitionStrategyType() != PartitionStrategyFactory::StrategyType::NONE)
         {
             throw Exception(ErrorCodes::BAD_ARGUMENTS, "The `partition_strategy` argument is incompatible with data lakes");
         }
     }
-    else if (configuration_to_initialize.partition_strategy_type == PartitionStrategyFactory::StrategyType::NONE)
+    else if (getPartitionStrategyType() == PartitionStrategyFactory::StrategyType::NONE)
     {
-        if (configuration_to_initialize.getRawPath().hasPartitionWildcard())
+        if (getRawPath().hasPartitionWildcard())
         {
             // Promote to wildcard in case it is not data lake to make it backwards compatible
-            configuration_to_initialize.partition_strategy_type = PartitionStrategyFactory::StrategyType::WILDCARD;
+            setPartitionStrategyType(PartitionStrategyFactory::StrategyType::WILDCARD);
         }
     }
 
-    if (configuration_to_initialize.format == "auto")
+    if (format == "auto")
     {
-        if (configuration_to_initialize.isDataLakeConfiguration())
+        if (isDataLakeConfiguration())
         {
-            configuration_to_initialize.format = "Parquet";
+            format = "Parquet";
         }
         else
         {
-            configuration_to_initialize.format
+            format
                 = FormatFactory::instance()
-                      .tryGetFormatFromFileName(configuration_to_initialize.isArchive() ? configuration_to_initialize.getPathInArchive() : configuration_to_initialize.getRawPath().path)
+                      .tryGetFormatFromFileName(isArchive() ? getPathInArchive() : getRawPath().path)
                       .value_or("auto");
         }
     }
     else
-        FormatFactory::instance().checkFormatName(configuration_to_initialize.format);
+        FormatFactory::instance().checkFormatName(format);
 
     /// It might be changed on `StorageObjectStorageConfiguration::initPartitionStrategy`
-    configuration_to_initialize.read_path = configuration_to_initialize.getRawPath();
-    configuration_to_initialize.initialized = true;
+    read_path = getRawPath();
+    initialized = true;
 }
 
 void StorageObjectStorageConfiguration::initPartitionStrategy(ASTPtr partition_by, const ColumnsDescription & columns, ContextPtr context)
