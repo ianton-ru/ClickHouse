@@ -316,7 +316,10 @@ void IcebergMetadata::updateSnapshot(ContextPtr local_context, Poco::JSON::Objec
                 persistent_components,
                 local_context,
                 getProperFilePathFromMetadataInfo(
-                snapshot->getValue<String>(f_manifest_list), configuration_ptr->getPathForRead().path, persistent_components.table_location),
+                    snapshot->getValue<String>(f_manifest_list),
+                    configuration_ptr->getPathForRead().path,
+                    persistent_components.table_location,
+                    configuration_ptr->getNamespace()),
                 log),
                 relevant_snapshot_id,
                 total_rows,
