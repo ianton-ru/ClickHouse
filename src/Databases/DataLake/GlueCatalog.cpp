@@ -428,7 +428,7 @@ bool GlueCatalog::classifyTimestampTZ(const String & column_name, const TableMet
             metadata_path = metadata_path.substr(pos + 1);
     }
     else
-        throw DB::Exception(DB::ErrorCodes::BAD_ARGUMENTS, "Metadata specific properties should be defined");
+        throw DB::Exception(DB::ErrorCodes::BAD_ARGUMENTS, "Failed to read table metadata, reason why table is unreadable: {}", table_metadata.getReasonWhyTableIsUnreadable());
 
     if (!metadata_objects.get(metadata_path))
     {
