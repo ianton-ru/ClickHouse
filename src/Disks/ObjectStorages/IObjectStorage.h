@@ -146,19 +146,16 @@ struct RelativePathWithMetadata
 
     RelativePathWithMetadata() = default;
 
-    explicit RelativePathWithMetadata(String relative_path_, std::optional<ObjectMetadata> metadata_ = std::nullopt)
-        : relative_path(std::move(relative_path_))
+    explicit RelativePathWithMetadata(String command_or_path, std::optional<ObjectMetadata> metadata_ = std::nullopt)
+        : relative_path(std::move(command_or_path))
         , metadata(std::move(metadata_))
-    {}
-    explicit RelativePathWithMetadata(const DataFileInfo & info, std::optional<ObjectMetadata> metadata_ = std::nullopt);
-
-    explicit RelativePathWithMetadata(const String & task_string, std::optional<ObjectMetadata> metadata_ = std::nullopt)
-        : metadata(std::move(metadata_))
-        , command(task_string)
+        , command(relative_path)
     {
-        if (!command.is_parsed())
-            relative_path = task_string;
+        if (command.is_parsed())
+            relative_path = "";
     }
+
+    explicit RelativePathWithMetadata(const DataFileInfo & info, std::optional<ObjectMetadata> metadata_ = std::nullopt);
 
     RelativePathWithMetadata(const RelativePathWithMetadata & other) = default;
 
