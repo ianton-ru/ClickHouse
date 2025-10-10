@@ -41,6 +41,7 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
         /// Note: please check if the key already exists to prevent duplicate entries.
         addSettingsChanges(settings_changes_history, "25.8.9.2000",
         {
+            {"object_storage_cluster_join_mode", "allow", "allow", "New setting"},
             {"lock_object_storage_task_distribution_ms", 500, 500, "Raised the value to 500 to avoid hoping tasks between executors."},
             {"object_storage_cluster", "", "", "Antalya: New setting"},
             {"object_storage_max_nodes", 0, 0, "Antalya: New setting"},
