@@ -121,6 +121,7 @@ env:
   build_sha: ${{ inputs.build_sha }}
   pr_number: ${{ github.event.number }}
   event_name: ${{ github.event_name }}
+  version: ${{ fromJson(inputs.workflow_config).custom_data.version.string }}
 
 jobs:
   runner_labels_setup:
@@ -177,7 +178,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -242,7 +243,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -313,7 +314,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -379,7 +380,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -455,7 +456,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -527,7 +528,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -591,7 +592,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -651,7 +652,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -716,7 +717,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -787,7 +788,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -852,7 +853,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -923,7 +924,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
@@ -1000,7 +1001,7 @@ jobs:
           ${{ inputs.workflow_config }}
           EOF
 
-          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }}
+          python3 .github/get-deb-url.py --github-env $GITHUB_ENV --workflow-config $REPORTS_PATH/workflow_config.json --s3-base-url $S3_BASE_URL --pr-number $PR_NUMBER --branch-name ${{ github.ref_name }} --commit-hash ${{ inputs.build_sha }} --binary
 
       - name: Run ${{ env.SUITE }} suite
         id: run_suite
