@@ -146,7 +146,7 @@ def started_cluster():
                 "configs/config.d/filesystem_caches.xml",
                 "configs/config.d/remote_servers.xml",
             ],
-            user_configs=["configs/users.d/users.xml", "configs/users.d/disable_parquet_metadata_caching.xml"],
+            user_configs=["configs/users.d/users.xml"],
             with_installed_binary=True,
             image="clickhouse/clickhouse-server",
             tag="25.3.3.42",
