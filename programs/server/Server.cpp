@@ -2334,6 +2334,8 @@ try
 
     }
 
+    global_context->startSwarmMode();
+
     {
         std::lock_guard lock(servers_lock);
         /// We should start interserver communications before (and more important shutdown after) tables.
@@ -2786,6 +2788,8 @@ try
 
             is_cancelled = true;
 
+            global_context->stopSwarmMode();
+
             LOG_DEBUG(log, "Waiting for current connections to close.");
 
             size_t current_connections = 0;
@@ -2829,11 +2833,11 @@ try
             else
                 LOG_INFO(log, "Closed connections.");
 
-            global_context->getRefreshSet().joinBackgroundTasks(wait_start + std::chrono::milliseconds(wait_limit_seconds * 1000));
+            bool joined_refresh_tasks = global_context->getRefreshSet().joinBackgroundTasks(wait_start + std::chrono::milliseconds(wait_limit_seconds * 1000));
 
             dns_cache_updater.reset();
 
-            if (current_connections)
+            if (current_connections || !joined_refresh_tasks)
             {
                 /// There is no better way to force connections to close in Poco.
                 /// Otherwise connection handlers will continue to live

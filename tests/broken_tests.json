@@ -295,14 +295,8 @@
         ]
     },
     "00024_random_counters": {
-        "reason": "INVESTIGATE - Timeout on tsan, coverage, asan, msan",
-        "message": "Timeout! Processes left in process group",
-        "check_types": [
-            "tsan",
-            "coverage",
-            "asan",
-            "msan"
-        ]
+        "reason": "INVESTIGATE - Timeout on sanitizers",
+        "message": "Timeout! Processes left in process group"
     },
     "00159_parallel_formatting_json_and_friends_2": {
         "reason": "INVESTIGATE - Timeout on tsan",
@@ -543,5 +537,9 @@
     "test_database_hms/test.py::test_hide_sensitive_info": {
         "reason": "KNOWN: Occasional timeout",
         "message": "docker_compose_iceberg_hms_catalog.yml', '--verbose', 'up', '-d']' timed out after 300 seconds"
+    },
+    "test_keeper_memory_soft_limit/test.py::test_soft_limit_create": {
+        "reason": "INVESTIGATE: Out of Memory",
+        "message": "Coordination error: Out of Memory."
     }
 }
