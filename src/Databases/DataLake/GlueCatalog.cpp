@@ -325,9 +325,16 @@ bool GlueCatalog::tryGetTableMetadata(
 
                 // Resolve the actual metadata file path based on table location
                 std::string resolved_metadata_path = resolveMetadataPathFromTableLocation(location_with_slash, result);
-                result.setDataLakeSpecificProperties(DataLakeSpecificProperties{.iceberg_metadata_file_location = resolved_metadata_path});
+                if (resolved_metadata_path.empty())
+                {
+                    result.setTableIsNotReadable(fmt::format("Could not determine metadata_location of table `{}`. ",
+                        database_name + "." + table_name));
+                }
+                else
+                {
+                    result.setDataLakeSpecificProperties(DataLakeSpecificProperties{.iceberg_metadata_file_location = resolved_metadata_path});
+                }
             }
-
             else
             {
                 result.setTableIsNotReadable(fmt::format("Cannot read table `{}` because it has no metadata_location. " \
@@ -559,9 +566,65 @@ String GlueCatalog::resolveMetadataPathFromTableLocation(const String & table_lo
     }
     catch (...)
     {
-        // If version-hint.text doesn't exist or is unreadable, fall back to metadata.json
-        LOG_TRACE(log, "Could not read version-hint.text from '{}', falling back to metadata.json", version_hint_path);
-        return table_location + "metadata/metadata.json";
+        // If version-hint.text doesn't exist or is unreadable, list all metadata files and select the latest
+        LOG_TRACE(log, "Could not read version-hint.text from '{}', trying to find latest metadata file", version_hint_path);
+
+        try
+        {
+            String bucket_with_prefix;
+            String metadata_dir = table_location + "metadata/";
+            String metadata_dir_path = metadata_dir;
+
+            if (metadata_dir_path.starts_with("s3://"))
+            {
+                metadata_dir_path = metadata_dir_path.substr(5);
+                // Remove bucket from path
+                std::size_t pos = metadata_dir_path.find('/');
+                if (pos != std::string::npos)
+                {
+                    metadata_dir_path = metadata_dir_path.substr(pos + 1);
+                    bucket_with_prefix = table_location.substr(0, pos + 6);
+                }
+            }
+            else
+                return "";
+
+            // List all files in metadata directory
+            DB::RelativePathsWithMetadata files;
+            object_storage->listObjects(metadata_dir_path, files, 0);
+
+            // Filter for .metadata.json files and find the most recent one
+            String latest_metadata_file;
+            std::optional<DB::ObjectMetadata> latest_metadata;
+
+            for (const auto & file : files)
+            {
+                if (file->getPath().ends_with(".metadata.json"))
+                {
+                    // Get file metadata to check last modified time
+                    if (!latest_metadata.has_value() ||
+                        (file->metadata->last_modified > latest_metadata->last_modified))
+                    {
+                        latest_metadata_file = file->getPath();
+                        latest_metadata = file->metadata;
+                    }
+                }
+            }
+
+            if (!latest_metadata_file.empty())
+            {
+                LOG_TRACE(log, "Found latest metadata file: {}", latest_metadata_file);
+                return bucket_with_prefix + latest_metadata_file;
+            }
+
+            LOG_TRACE(log, "No .metadata.json files found,");
+            return "";
+        }
+        catch (...)
+        {
+            LOG_TRACE(log, "Failed to list metadata directory");
+            return "";
+        }
     }
 }
 
