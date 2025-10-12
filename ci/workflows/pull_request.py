@@ -101,11 +101,12 @@ workflow = Workflow.Config(
             job.set_dependency(FUNCTIONAL_TESTS_PARALLEL_BLOCKING_JOB_NAMES)
             for job in JobConfigs.buzz_fuzzer_jobs
         ],
-        #*[
+        # *[
         #    job.set_dependency(FUNCTIONAL_TESTS_PARALLEL_BLOCKING_JOB_NAMES)
         #    for job in JobConfigs.performance_comparison_with_master_head_jobs
         # ], # NOTE (strtgbb): failed previously due to GH secrets not being handled properly, try again later
     ],
+    additional_jobs=["GrypeScan", "Regression", "CIReport"],
     artifacts=[
         *ArtifactConfigs.unittests_binaries,
         *ArtifactConfigs.clickhouse_binaries,
@@ -136,7 +137,7 @@ workflow = Workflow.Config(
     workflow_filter_hooks=[should_skip_job],
     post_hooks=[
         # "python3 ./ci/jobs/scripts/workflow_hooks/feature_docs.py", # NOTE (strtgbb): we don't build docs
-        "python3 ./ci/jobs/scripts/workflow_hooks/new_tests_check.py",
+        # "python3 ./ci/jobs/scripts/workflow_hooks/new_tests_check.py", # NOTE (strtgbb): we don't use this
         # "python3 ./ci/jobs/scripts/workflow_hooks/can_be_merged.py", # NOTE (strtgbb): relies on labels we don't use
     ],
 )

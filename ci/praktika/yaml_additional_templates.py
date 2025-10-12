@@ -35,11 +35,9 @@ class AltinityWorkflowTemplates:
           echo "Workflow Run Report: [View Report]($REPORT_LINK)" >> $GITHUB_STEP_SUMMARY
 """
     # Additional jobs
-    REGRESSION_HASH = "4a3f046ac47b1f1286c82d734251541711314645"
-    ADDITIONAL_JOBS = r"""
-##########################################################################################
-##################################### ALTINITY JOBS ######################################
-##########################################################################################
+    REGRESSION_HASH = "3fbe58a0ebe8fa5f97b7f36c45a2a69b1d3b6568"
+    ALTINITY_JOBS = {
+        "GrypeScan": r"""
   GrypeScanServer:
     needs: [config_workflow, docker_server_image]
     if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).cache_success_base64, 'RG9ja2VyIHNlcnZlciBpbWFnZQ==') }}
@@ -61,9 +59,10 @@ class AltinityWorkflowTemplates:
       with:
         docker_image: altinityinfra/clickhouse-keeper
         version: ${{ fromJson(needs.config_workflow.outputs.data).custom_data.version.string }}
-
+""",
+        "Regression": r"""
   RegressionTestsRelease:
-    needs: [config_workflow, build_amd_release]
+    needs: [config_workflow, build_amd_binary]
     if: ${{ !failure() && !cancelled() && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_regression')}}
     uses: ./.github/workflows/regression.yml
     secrets: inherit
@@ -75,7 +74,7 @@ class AltinityWorkflowTemplates:
       timeout_minutes: 300
       workflow_config: ${{ needs.config_workflow.outputs.data }}
   RegressionTestsAarch64:
-    needs: [config_workflow, build_arm_release]
+    needs: [config_workflow, build_arm_binary]
     if: ${{ !failure() && !cancelled() && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_regression') && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_aarch64')}}
     uses: ./.github/workflows/regression.yml
     secrets: inherit
@@ -86,7 +85,8 @@ class AltinityWorkflowTemplates:
       build_sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       timeout_minutes: 300
       workflow_config: ${{ needs.config_workflow.outputs.data }}
-
+""",
+        "SignRelease": r"""
   SignRelease:
     needs: [config_workflow, build_amd_release]
     if: ${{ !failure() && !cancelled() }}
@@ -105,17 +105,12 @@ class AltinityWorkflowTemplates:
       test_name: Sign aarch64
       runner_type: altinity-style-checker-aarch64
       data: ${{ needs.config_workflow.outputs.data }}
-
+""",
+        "CIReport": r"""
   FinishCIReport:
     if: ${{ !cancelled() }}
     needs:
 {ALL_JOBS}
-      - SignRelease
-      - SignAarch64
-      - RegressionTestsRelease
-      - RegressionTestsAarch64
-      - GrypeScanServer
-      - GrypeScanKeeper
     runs-on: [self-hosted, altinity-on-demand, altinity-style-checker-aarch64]
     steps:
       - name: Check out repository code
@@ -128,4 +123,10 @@ class AltinityWorkflowTemplates:
         with:
           workflow_config: ${{ needs.config_workflow.outputs.data }}
           final: true
+""",
+    }
+    ADDITIONAL_JOBS_BANNER = r"""
+##########################################################################################
+##################################### ALTINITY JOBS ######################################
+##########################################################################################
 """
