@@ -107,6 +107,11 @@ struct ObjectMetadata
     ObjectAttributes attributes;
 };
 
+
+struct DataFileInfo;
+class DataFileMetaInfo;
+using DataFileMetaInfoPtr = std::shared_ptr<DataFileMetaInfo>;
+
 struct DataLakeObjectMetadata;
 
 struct RelativePathWithMetadata
@@ -134,18 +139,23 @@ struct RelativePathWithMetadata
     std::optional<ObjectMetadata> metadata;
     /// Delta lake related object metadata.
     std::optional<DataLakeObjectMetadata> data_lake_metadata;
+    /// Information about columns
+    std::optional<DataFileMetaInfoPtr> file_meta_info;
     /// Retry request after short pause
     CommandInTaskResponse command;
 
     RelativePathWithMetadata() = default;
 
-    explicit RelativePathWithMetadata(const String & task_string, std::optional<ObjectMetadata> metadata_ = std::nullopt)
-        : metadata(std::move(metadata_))
-        , command(task_string)
+    explicit RelativePathWithMetadata(String command_or_path, std::optional<ObjectMetadata> metadata_ = std::nullopt)
+        : relative_path(std::move(command_or_path))
+        , metadata(std::move(metadata_))
+        , command(relative_path)
     {
-        if (!command.is_parsed())
-            relative_path = task_string;
+        if (command.is_parsed())
+            relative_path = "";
     }
+
+    explicit RelativePathWithMetadata(const DataFileInfo & info, std::optional<ObjectMetadata> metadata_ = std::nullopt);
 
     RelativePathWithMetadata(const RelativePathWithMetadata & other) = default;
 
@@ -157,6 +167,9 @@ struct RelativePathWithMetadata
     virtual std::string getPathToArchive() const { throw Exception(ErrorCodes::LOGICAL_ERROR, "Not an archive"); }
     virtual size_t fileSizeInArchive() const { throw Exception(ErrorCodes::LOGICAL_ERROR, "Not an archive"); }
     virtual std::string getPathOrPathToArchiveIfArchive() const;
+
+    void setFileMetaInfo(std::optional<DataFileMetaInfoPtr> file_meta_info_ ) { file_meta_info = file_meta_info_; }
+    std::optional<DataFileMetaInfoPtr> getFileMetaInfo() const { return file_meta_info; }
 
     const CommandInTaskResponse & getCommand() const { return command; }
 };

@@ -7063,6 +7063,9 @@ DECLARE(Bool, allow_experimental_ytsaurus_dictionary_source, false, R"(
     DECLARE(Bool, distributed_plan_force_shuffle_aggregation, false, R"(
 Use Shuffle aggregation strategy instead of PartialAggregation + Merge in distributed query plan.
 )", EXPERIMENTAL) \
+    DECLARE(Bool, allow_experimental_iceberg_read_optimization, true, R"(
+Allow Iceberg read optimization based on Iceberg metadata.
+)", EXPERIMENTAL) \
     DECLARE(Bool, allow_retries_in_cluster_requests, false, R"(
 Allow retries in cluster request, when one node goes offline
 )", EXPERIMENTAL) \

@@ -7,6 +7,7 @@
 #include <Interpreters/Context.h>
 #include <Common/Exception.h>
 #include <Common/ObjectStorageKeyGenerator.h>
+#include <Storages/ObjectStorage/DataLakes/IDataLakeMetadata.h>
 
 #include <Poco/JSON/Object.h>
 #include <Poco/JSON/Parser.h>
@@ -99,6 +100,13 @@ ReadSettings IObjectStorage::patchSettings(const ReadSettings & read_settings) c
 WriteSettings IObjectStorage::patchSettings(const WriteSettings & write_settings) const
 {
     return write_settings;
+}
+
+RelativePathWithMetadata::RelativePathWithMetadata(const DataFileInfo & info, std::optional<ObjectMetadata> metadata_)
+    : metadata(std::move(metadata_))
+{
+    relative_path = info.file_path;
+    file_meta_info = info.file_meta_info;
 }
 
 std::string RelativePathWithMetadata::getPathOrPathToArchiveIfArchive() const
