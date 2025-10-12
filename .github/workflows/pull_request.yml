@@ -4129,7 +4129,7 @@ jobs:
 
   RegressionTestsRelease:
     needs: [config_workflow, build_amd_binary]
-    if: ${{ !failure() && !cancelled() && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_regression')}}
+    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).custom_data.ci_exclude_tags, 'regression')}}
     uses: ./.github/workflows/regression.yml
     secrets: inherit
     with:
@@ -4141,7 +4141,7 @@ jobs:
       workflow_config: ${{ needs.config_workflow.outputs.data }}
   RegressionTestsAarch64:
     needs: [config_workflow, build_arm_binary]
-    if: ${{ !failure() && !cancelled() && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_regression') && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_aarch64')}}
+    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).custom_data.ci_exclude_tags, 'regression') && !contains(fromJson(needs.config_workflow.outputs.data).custom_data.ci_exclude_tags, 'aarch64')}}
     uses: ./.github/workflows/regression.yml
     secrets: inherit
     with:
