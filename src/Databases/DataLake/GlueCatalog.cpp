@@ -317,11 +317,22 @@ bool GlueCatalog::tryGetTableMetadata(
             {
                 result.setDataLakeSpecificProperties(DataLakeSpecificProperties{.iceberg_metadata_file_location = table_params.at("metadata_location")});
             }
+            else if (const auto & location = table_outcome.GetStorageDescriptor().GetLocation(); !location.empty())
+            {
+                std::string location_with_slash = location;
+                if (!location_with_slash.ends_with('/'))
+                    location_with_slash += '/';
+
+                // Resolve the actual metadata file path based on table location
+                std::string resolved_metadata_path = resolveMetadataPathFromTableLocation(location_with_slash, result);
+                result.setDataLakeSpecificProperties(DataLakeSpecificProperties{.iceberg_metadata_file_location = resolved_metadata_path});
+            }
+
             else
             {
-                 result.setTableIsNotReadable(fmt::format("Cannot read table `{}` because it has no metadata_location. " \
-                     "It means that it's unreadable with Glue catalog in ClickHouse, readable tables must have 'metadata_location' in table parameters",
-                     database_name + "." + table_name));
+                result.setTableIsNotReadable(fmt::format("Cannot read table `{}` because it has no metadata_location. " \
+                    "It means that it's unreadable with Glue catalog in ClickHouse, readable tables must have 'metadata_location' in table parameters",
+                    database_name + "." + table_name));
             }
         };
 
@@ -424,7 +435,7 @@ bool GlueCatalog::classifyTimestampTZ(const String & column_name, const TableMet
         if (metadata_path.starts_with("s3:/"))
             metadata_path = metadata_path.substr(5);
 
-        // Delete bucket
+        // Delete bucket from path
         std::size_t pos = metadata_path.find('/');
         if (pos != std::string::npos)
             metadata_path = metadata_path.substr(pos + 1);
@@ -489,6 +500,69 @@ bool GlueCatalog::classifyTimestampTZ(const String & column_name, const TableMet
     }
 
     return false;
+}
+
+String GlueCatalog::resolveMetadataPathFromTableLocation(const String & table_location, const TableMetadata & table_metadata) const
+{
+    // Construct path to version-hint.text
+    String version_hint_path = table_location + "metadata/version-hint.text";
+
+    DB::ASTStorage * storage = table_engine_definition->as<DB::ASTStorage>();
+    DB::ASTs args = storage->engine->arguments->children;
+
+    String storage_endpoint = !settings.storage_endpoint.empty() ? settings.storage_endpoint : table_location;
+    if (args.empty())
+        args.emplace_back(std::make_shared<DB::ASTLiteral>(storage_endpoint));
+    else
+        args[0] = std::make_shared<DB::ASTLiteral>(storage_endpoint);
+
+    if (args.size() == 1 && table_metadata.hasStorageCredentials())
+    {
+        auto storage_credentials = table_metadata.getStorageCredentials();
+        if (storage_credentials)
+            storage_credentials->addCredentialsToEngineArgs(args);
+    }
+
+    auto storage_settings = std::make_shared<DB::DataLakeStorageSettings>();
+    storage_settings->loadFromSettingsChanges(settings.allChanged());
+    auto configuration = std::make_shared<DB::StorageS3IcebergConfiguration>(storage_settings);
+    DB::StorageObjectStorageConfiguration::initialize(*configuration, args, getContext(), false);
+
+    auto object_storage = configuration->createObjectStorage(getContext(), true);
+    const auto & read_settings = getContext()->getReadSettings();
+
+    try
+    {
+        // Try to read version-hint.text to get the latest version
+        String version_hint_object_path = version_hint_path;
+        if (version_hint_object_path.starts_with("s3://"))
+        {
+            version_hint_object_path = version_hint_object_path.substr(5);
+            // Remove bucket from path
+            std::size_t pos = version_hint_object_path.find('/');
+            if (pos != std::string::npos)
+                version_hint_object_path = version_hint_object_path.substr(pos + 1);
+        }
+
+        DB::StoredObject version_hint_stored_object(version_hint_object_path);
+        auto version_hint_buf = object_storage->readObject(version_hint_stored_object, read_settings);
+        String version_str;
+        readString(version_str, *version_hint_buf);
+
+        // Trim whitespace
+        boost::algorithm::trim(version_str);
+
+        LOG_TRACE(log, "Read version {} from version-hint.text for table location '{}'", version_str, table_location);
+
+        // Construct metadata file path: table_location/metadata/v{version}-metadata.json
+        return table_location + "metadata/v" + version_str + "-metadata.json";
+    }
+    catch (...)
+    {
+        // If version-hint.text doesn't exist or is unreadable, fall back to metadata.json
+        LOG_TRACE(log, "Could not read version-hint.text from '{}', falling back to metadata.json", version_hint_path);
+        return table_location + "metadata/metadata.json";
+    }
 }
 
 void GlueCatalog::createNamespaceIfNotExists(const String & namespace_name) const

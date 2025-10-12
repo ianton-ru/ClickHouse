@@ -52,6 +52,9 @@ If enabled, indicates that metadata is taken from iceberg specification that is 
     DECLARE(String, iceberg_metadata_file_path, "", R"(
 Explicit path to desired Iceberg metadata file, should be relative to path in object storage. Make sense for table function use case only.
 )", 0) \
+    DECLARE(String, iceberg_table_location, "", R"(
+Explicit path to Iceberg table location (warehouse). If no iceberg_metadata_file_path provided, it will be deduced using this parameter.
+)", 0) \
     DECLARE(String, iceberg_metadata_table_uuid, "", R"(
 Explicit table UUID to read metadata for. Ignored if iceberg_metadata_file_path is set.
 )", 0) \
