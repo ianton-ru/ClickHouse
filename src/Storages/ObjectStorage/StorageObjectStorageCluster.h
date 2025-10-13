@@ -122,6 +122,8 @@ public:
 
     void onActionLockRemove(StorageActionBlockType action_type) override;
 
+    bool prefersLargeBlocks() const override;
+
 private:
     void updateQueryToSendIfNeeded(
         ASTPtr & query,

@@ -872,4 +872,11 @@ void StorageObjectStorageCluster::onActionLockRemove(StorageActionBlockType acti
     IStorageCluster::onActionLockRemove(action_type);
 }
 
+bool StorageObjectStorageCluster::prefersLargeBlocks() const
+{
+    if (pure_storage)
+        return pure_storage->prefersLargeBlocks();
+    return IStorageCluster::prefersLargeBlocks();
+}
+
 }
