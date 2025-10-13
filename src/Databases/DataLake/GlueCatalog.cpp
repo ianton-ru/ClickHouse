@@ -533,7 +533,7 @@ String GlueCatalog::resolveMetadataPathFromTableLocation(const String & table_lo
     auto storage_settings = std::make_shared<DB::DataLakeStorageSettings>();
     storage_settings->loadFromSettingsChanges(settings.allChanged());
     auto configuration = std::make_shared<DB::StorageS3IcebergConfiguration>(storage_settings);
-    DB::StorageObjectStorageConfiguration::initialize(*configuration, args, getContext(), false);
+    configuration->initialize(args, getContext(), false);
 
     auto object_storage = configuration->createObjectStorage(getContext(), true);
     const auto & read_settings = getContext()->getReadSettings();
@@ -556,17 +556,14 @@ String GlueCatalog::resolveMetadataPathFromTableLocation(const String & table_lo
         String version_str;
         readString(version_str, *version_hint_buf);
 
-        // Trim whitespace
         boost::algorithm::trim(version_str);
 
         LOG_TRACE(log, "Read version {} from version-hint.text for table location '{}'", version_str, table_location);
 
-        // Construct metadata file path: table_location/metadata/v{version}-metadata.json
         return table_location + "metadata/v" + version_str + "-metadata.json";
     }
     catch (...)
     {
-        // If version-hint.text doesn't exist or is unreadable, list all metadata files and select the latest
         LOG_TRACE(log, "Could not read version-hint.text from '{}', trying to find latest metadata file", version_hint_path);
 
         try
@@ -617,7 +614,7 @@ String GlueCatalog::resolveMetadataPathFromTableLocation(const String & table_lo
                 return bucket_with_prefix + latest_metadata_file;
             }
 
-            LOG_TRACE(log, "No .metadata.json files found,");
+            LOG_TRACE(log, "No <...>.metadata.json files found,");
             return "";
         }
         catch (...)
