@@ -81,6 +81,10 @@
 #include <Formats/ProtobufSchemas.h>
 #endif
 
+#if USE_PARQUET
+#include <Processors/Formats/Impl/ParquetFileMetaDataCache.h>
+#endif
+
 #if USE_AWS_S3
 #include <IO/S3/Client.h>
 #endif
@@ -436,6 +440,16 @@ BlockIO InterpreterSystemQuery::execute()
             getContext()->clearQueryResultCache(query.query_result_cache_tag);
             break;
         }
+        case Type::DROP_PARQUET_METADATA_CACHE:
+        {
+#if USE_PARQUET
+            getContext()->checkAccess(AccessType::SYSTEM_DROP_PARQUET_METADATA_CACHE);
+            ParquetFileMetaDataCache::instance()->clear();
+            break;
+#else
+            throw Exception(ErrorCodes::SUPPORT_IS_DISABLED, "The server was compiled without the support for Parquet");
+#endif
+        }
         case Type::DROP_COMPILED_EXPRESSION_CACHE:
 #if USE_EMBEDDED_COMPILER
             getContext()->checkAccess(AccessType::SYSTEM_DROP_COMPILED_EXPRESSION_CACHE);
@@ -702,6 +716,20 @@ BlockIO InterpreterSystemQuery::execute()
         case Type::START_MOVES:
             startStopAction(ActionLocks::PartsMove, true);
             break;
+        case Type::STOP_SWARM_MODE:
+        {
+            getContext()->checkAccess(AccessType::SYSTEM_SWARM);
+            if (getContext()->stopSwarmMode())
+                getContext()->unregisterInAutodiscoveryClusters();
+            break;
+        }
+        case Type::START_SWARM_MODE:
+        {
+            getContext()->checkAccess(AccessType::SYSTEM_SWARM);
+            if (getContext()->startSwarmMode())
+                getContext()->registerInAutodiscoveryClusters();
+            break;
+        }
         case Type::STOP_FETCHES:
             startStopAction(ActionLocks::PartsFetch, false);
             break;
@@ -1575,6 +1603,7 @@ AccessRightsElements InterpreterSystemQuery::getRequiredAccessForDDLOnCluster() 
         case Type::DROP_PAGE_CACHE:
         case Type::DROP_SCHEMA_CACHE:
         case Type::DROP_FORMAT_SCHEMA_CACHE:
+        case Type::DROP_PARQUET_METADATA_CACHE:
         case Type::DROP_S3_CLIENT_CACHE:
         {
             required_access.emplace_back(AccessType::SYSTEM_DROP_CACHE);
@@ -1641,6 +1670,12 @@ AccessRightsElements InterpreterSystemQuery::getRequiredAccessForDDLOnCluster() 
                 required_access.emplace_back(AccessType::SYSTEM_MOVES);
             else
                 required_access.emplace_back(AccessType::SYSTEM_MOVES, query.getDatabase(), query.getTable());
+            break;
+        }
+        case Type::STOP_SWARM_MODE:
+        case Type::START_SWARM_MODE:
+        {
+            required_access.emplace_back(AccessType::SYSTEM_SWARM);
             break;
         }
         case Type::STOP_PULLING_REPLICATION_LOG:
