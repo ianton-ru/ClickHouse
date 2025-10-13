@@ -300,6 +300,7 @@
     M(FilesystemCacheDelayedCleanupElements, "Filesystem cache elements in background cleanup queue") \
     M(FilesystemCacheHoldFileSegments, "Filesystem cache file segment which are currently hold as unreleasable") \
     M(FilesystemCacheKeys, "Number of keys in filesystem cache") \
+    M(FilesystemCacheReserveThreads, "Threads number trying to reserve space in cache") \
     M(AsyncInsertCacheSize, "Number of async insert hash id in cache") \
     M(IcebergMetadataFilesCacheBytes, "Size of the iceberg metadata cache in bytes") \
     M(IcebergMetadataFilesCacheFiles, "Number of cached files in the iceberg metadata cache") \
@@ -432,6 +433,7 @@
     M(StartupScriptsExecutionState, "State of startup scripts execution: 0 = not finished, 1 = success, 2 = failure.") \
     \
     M(IsServerShuttingDown, "Indicates if the server is shutting down: 0 = no, 1 = yes") \
+    M(IsSwarmModeEnabled, "Indicates if the swarm mode enabled or not: 0 = disabled, 1 = enabled") \
     \
     M(StatelessWorkerThreads, "Number of threads in the stateless worker thread pool.") \
     M(StatelessWorkerThreadsActive, "Number of threads in the stateless worker thread pool running a task.") \

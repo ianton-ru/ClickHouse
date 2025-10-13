@@ -59,33 +59,32 @@ std::optional<ColumnsDescription> StorageObjectStorageConfiguration::tryGetTable
 }
 
 void StorageObjectStorageConfiguration::initialize(
-    StorageObjectStorageConfiguration & configuration_to_initialize,
     ASTs & engine_args,
     ContextPtr local_context,
     bool with_table_structure)
 {
     if (auto named_collection = tryGetNamedCollectionWithOverrides(engine_args, local_context))
-        configuration_to_initialize.fromNamedCollection(*named_collection, local_context);
+        fromNamedCollection(*named_collection, local_context);
     else
-        configuration_to_initialize.fromAST(engine_args, local_context, with_table_structure);
+        fromAST(engine_args, local_context, with_table_structure);
 
-    if (configuration_to_initialize.isNamespaceWithGlobs())
+    if (isNamespaceWithGlobs())
         throw Exception(ErrorCodes::BAD_ARGUMENTS,
-                        "Expression can not have wildcards inside {} name", configuration_to_initialize.getNamespaceType());
+                        "Expression can not have wildcards inside {} name", getNamespaceType());
 
-    if (configuration_to_initialize.isDataLakeConfiguration())
+    if (isDataLakeConfiguration())
     {
-        if (configuration_to_initialize.partition_strategy_type != PartitionStrategyFactory::StrategyType::NONE)
+        if (getPartitionStrategyType() != PartitionStrategyFactory::StrategyType::NONE)
         {
             throw Exception(ErrorCodes::BAD_ARGUMENTS, "The `partition_strategy` argument is incompatible with data lakes");
         }
     }
-    else if (configuration_to_initialize.partition_strategy_type == PartitionStrategyFactory::StrategyType::NONE)
+    else if (getPartitionStrategyType() == PartitionStrategyFactory::StrategyType::NONE)
     {
-        if (configuration_to_initialize.getRawPath().hasPartitionWildcard())
+        if (getRawPath().hasPartitionWildcard())
         {
             // Promote to wildcard in case it is not data lake to make it backwards compatible
-            configuration_to_initialize.partition_strategy_type = PartitionStrategyFactory::StrategyType::WILDCARD;
+            setPartitionStrategyType(PartitionStrategyFactory::StrategyType::WILDCARD);
         }
     }
 
@@ -100,25 +99,25 @@ void StorageObjectStorageConfiguration::initialize(
         configuration_to_initialize.file_path_generator = std::make_shared<ObjectStorageWildcardFilePathGenerator>(configuration_to_initialize.getRawPath().path);
     }
 
-    if (configuration_to_initialize.format == "auto")
+    if (format == "auto")
     {
-        if (configuration_to_initialize.isDataLakeConfiguration())
+        if (isDataLakeConfiguration())
         {
-            configuration_to_initialize.format = "Parquet";
+            format = "Parquet";
         }
         else
         {
-            configuration_to_initialize.format
+            format
                 = FormatFactory::instance()
-                      .tryGetFormatFromFileName(configuration_to_initialize.isArchive() ? configuration_to_initialize.getPathInArchive() : configuration_to_initialize.getRawPath().path)
+                      .tryGetFormatFromFileName(isArchive() ? getPathInArchive() : getRawPath().path)
                       .value_or("auto");
         }
     }
     else
-        FormatFactory::instance().checkFormatName(configuration_to_initialize.format);
+        FormatFactory::instance().checkFormatName(format);
 
     configuration_to_initialize.read_path = configuration_to_initialize.file_path_generator->getPathForRead();
-    configuration_to_initialize.initialized = true;
+    initialized = true;
 }
 
 void StorageObjectStorageConfiguration::initPartitionStrategy(ASTPtr partition_by, const ColumnsDescription & columns, ContextPtr context)
@@ -187,7 +186,7 @@ std::string StorageObjectStorageConfiguration::Path::cutGlobs(bool supports_part
     return path.substr(0, end_of_path_without_globs);
 }
 
-void StorageObjectStorageConfiguration::check(ContextPtr) const
+void StorageObjectStorageConfiguration::check(ContextPtr)
 {
     FormatFactory::instance().checkFormatName(format);
 }

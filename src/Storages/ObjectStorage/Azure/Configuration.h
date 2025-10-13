@@ -75,7 +75,7 @@ public:
     String getDataSourceDescription() const override { return std::filesystem::path(connection_params.getConnectionURL()) / connection_params.getContainer(); }
     StorageObjectStorageQuerySettings getQuerySettings(const ContextPtr &) const override;
 
-    void check(ContextPtr context) const override;
+    void check(ContextPtr context) override;
 
     ObjectStoragePtr createObjectStorage(ContextPtr context, bool is_readonly) override;
 
@@ -86,15 +86,21 @@ public:
         ContextPtr context,
         bool with_structure) override;
 
+    ASTPtr createArgsWithAccessData() const override;
+
 protected:
     void fromNamedCollection(const NamedCollection & collection, ContextPtr context) override;
     void fromAST(ASTs & args, ContextPtr context, bool with_structure) override;
     ASTPtr extractExtraCredentials(ASTs & args);
-    bool collectCredentials(ASTPtr maybe_credentials, std::optional<String> & client_id, std::optional<String> & tenant_id, ContextPtr local_context);
+    bool collectCredentials(ASTPtr maybe_credentials, std::optional<String> & client_id_, std::optional<String> & tenant_id_, ContextPtr local_context);
 
     Path blob_path;
     Paths blobs_paths;
     AzureBlobStorage::ConnectionParams connection_params;
+    std::optional<std::string> account_name;
+    std::optional<std::string> account_key;
+    std::optional<std::string> client_id;
+    std::optional<std::string> tenant_id;
 };
 
 }

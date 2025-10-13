@@ -122,9 +122,10 @@ GlueCatalog::GlueCatalog(
         s3_slow_all_threads_after_network_error,
         s3_slow_all_threads_after_retryable_error,
         enable_s3_requests_logging,
-        false,
-        nullptr,
-        nullptr);
+        /* for_disk_s3 = */ false,
+        /* opt_disk_name = */ {},
+        /* get_request_throttler = */ nullptr,
+        /* put_request_throttler = */ nullptr);
 
     Aws::Glue::GlueClientConfiguration client_configuration;
     client_configuration.maxConnections = static_cast<unsigned>(global_settings[DB::Setting::s3_max_connections]);
@@ -450,7 +451,7 @@ bool GlueCatalog::classifyTimestampTZ(const String & column_name, const TableMet
         auto storage_settings = std::make_shared<DB::DataLakeStorageSettings>();
         storage_settings->loadFromSettingsChanges(settings.allChanged());
         auto configuration = std::make_shared<DB::StorageS3IcebergConfiguration>(storage_settings);
-        DB::StorageObjectStorageConfiguration::initialize(*configuration, args, getContext(), false);
+        configuration->initialize(args, getContext(), false);
 
         auto object_storage = configuration->createObjectStorage(getContext(), true);
         const auto & read_settings = getContext()->getReadSettings();

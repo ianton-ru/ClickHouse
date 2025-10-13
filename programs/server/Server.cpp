@@ -157,6 +157,10 @@
 #   include <azure/core/diagnostics/logger.hpp>
 #endif
 
+#if USE_PARQUET
+#   include <Processors/Formats/Impl/ParquetFileMetaDataCache.h>
+#endif
+
 
 #include <incbin.h>
 /// A minimal file used when the server is run without installation
@@ -338,6 +342,7 @@ namespace ServerSetting
     extern const ServerSettingsBool abort_on_logical_error;
     extern const ServerSettingsUInt64 jemalloc_flush_profile_interval_bytes;
     extern const ServerSettingsBool jemalloc_flush_profile_on_memory_exceeded;
+    extern const ServerSettingsUInt64 input_format_parquet_metadata_cache_max_size;
 }
 
 namespace ErrorCodes
@@ -2329,6 +2334,8 @@ try
 
     }
 
+    global_context->startSwarmMode();
+
     {
         std::lock_guard lock(servers_lock);
         /// We should start interserver communications before (and more important shutdown after) tables.
@@ -2521,6 +2528,10 @@ try
         dns_cache_updater->start();
 
     auto replicas_reconnector = ReplicasReconnector::init(global_context);
+
+#if USE_PARQUET
+    ParquetFileMetaDataCache::instance()->setMaxSizeInBytes(server_settings[ServerSetting::input_format_parquet_metadata_cache_max_size]);
+#endif
 
     /// Set current database name before loading tables and databases because
     /// system logs may copy global context.
@@ -2777,6 +2788,8 @@ try
 
             is_cancelled = true;
 
+            global_context->stopSwarmMode();
+
             LOG_DEBUG(log, "Waiting for current connections to close.");
 
             size_t current_connections = 0;
@@ -2820,11 +2833,11 @@ try
             else
                 LOG_INFO(log, "Closed connections.");
 
-            global_context->getRefreshSet().joinBackgroundTasks(wait_start + std::chrono::milliseconds(wait_limit_seconds * 1000));
+            bool joined_refresh_tasks = global_context->getRefreshSet().joinBackgroundTasks(wait_start + std::chrono::milliseconds(wait_limit_seconds * 1000));
 
             dns_cache_updater.reset();
 
-            if (current_connections)
+            if (current_connections || !joined_refresh_tasks)
             {
                 /// There is no better way to force connections to close in Poco.
                 /// Otherwise connection handlers will continue to live

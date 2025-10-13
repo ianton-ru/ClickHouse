@@ -58,7 +58,7 @@ public:
     String getDataSourceDescription() const override { return url; }
     StorageObjectStorageQuerySettings getQuerySettings(const ContextPtr &) const override;
 
-    void check(ContextPtr context) const override;
+    void check(ContextPtr context) override;
 
     ObjectStoragePtr createObjectStorage(ContextPtr context, bool is_readonly) override;
 
@@ -68,6 +68,8 @@ public:
         const String & format_,
         ContextPtr context,
         bool with_structure) override;
+
+    ASTPtr createArgsWithAccessData() const override;
 
 private:
     void fromNamedCollection(const NamedCollection &, ContextPtr context) override;

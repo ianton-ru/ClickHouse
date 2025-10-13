@@ -15,7 +15,6 @@
 #include <Interpreters/InterpreterSelectQueryAnalyzer.h>
 #include <Processors/Sources/NullSource.h>
 #include <Processors/Sources/RemoteSource.h>
-#include <Processors/QueryPlan/SourceStepWithFilter.h>
 #include <QueryPipeline/narrowPipe.h>
 #include <QueryPipeline/Pipe.h>
 #include <QueryPipeline/RemoteQueryExecutor.h>
@@ -23,6 +22,12 @@
 #include <Storages/IStorage.h>
 #include <Storages/SelectQueryInfo.h>
 #include <Storages/StorageDictionary.h>
+#include <Storages/extractTableFunctionFromSelectQuery.h>
+#include <Planner/Utils.h>
+#include <Analyzer/QueryTreeBuilder.h>
+#include <Analyzer/QueryNode.h>
+#include <Analyzer/ColumnNode.h>
+#include <Analyzer/InDepthQueryTreeVisitor.h>
 
 #include <algorithm>
 #include <memory>
@@ -40,6 +45,14 @@ namespace Setting
     extern const SettingsBool parallel_replicas_local_plan;
     extern const SettingsString cluster_for_parallel_replicas;
     extern const SettingsNonZeroUInt64 max_parallel_replicas;
+    extern const SettingsObjectStorageClusterJoinMode object_storage_cluster_join_mode;
+    extern const SettingsUInt64 object_storage_max_nodes;
+}
+
+namespace ErrorCodes
+{
+    extern const int LOGICAL_ERROR;
+    extern const int NOT_IMPLEMENTED;
 }
 
 namespace ErrorCodes
@@ -56,51 +69,6 @@ IStorageCluster::IStorageCluster(
     , cluster_name(cluster_name_)
 {
 }
-
-class ReadFromCluster : public SourceStepWithFilter
-{
-public:
-    std::string getName() const override { return "ReadFromCluster"; }
-    void initializePipeline(QueryPipelineBuilder & pipeline, const BuildQueryPipelineSettings &) override;
-    void applyFilters(ActionDAGNodes added_filter_nodes) override;
-
-    ReadFromCluster(
-        const Names & column_names_,
-        const SelectQueryInfo & query_info_,
-        const StorageSnapshotPtr & storage_snapshot_,
-        const ContextPtr & context_,
-        SharedHeader sample_block,
-        std::shared_ptr<IStorageCluster> storage_,
-        ASTPtr query_to_send_,
-        QueryProcessingStage::Enum processed_stage_,
-        ClusterPtr cluster_,
-        LoggerPtr log_)
-        : SourceStepWithFilter(
-            std::move(sample_block),
-            column_names_,
-            query_info_,
-            storage_snapshot_,
-            context_)
-        , storage(std::move(storage_))
-        , query_to_send(std::move(query_to_send_))
-        , processed_stage(processed_stage_)
-        , cluster(std::move(cluster_))
-        , log(log_)
-    {
-    }
-
-private:
-    std::shared_ptr<IStorageCluster> storage;
-    ASTPtr query_to_send;
-    QueryProcessingStage::Enum processed_stage;
-    ClusterPtr cluster;
-    LoggerPtr log;
-
-    std::optional<RemoteQueryExecutor::Extension> extension;
-
-    void createExtension(const ActionsDAG::Node * predicate);
-    ContextPtr updateSettings(const Settings & settings);
-};
 
 void ReadFromCluster::applyFilters(ActionDAGNodes added_filter_nodes)
 {
@@ -125,6 +93,175 @@ void ReadFromCluster::createExtension(const ActionsDAG::Node * predicate)
         cluster);
 }
 
+namespace
+{
+
+/*
+Helping class to find in query tree first node of required type
+*/
+class SearcherVisitor : public InDepthQueryTreeVisitorWithContext<SearcherVisitor>
+{
+public:
+    using Base = InDepthQueryTreeVisitorWithContext<SearcherVisitor>;
+    using Base::Base;
+
+    explicit SearcherVisitor(QueryTreeNodeType type_, ContextPtr context) : Base(context), type(type_) {}
+
+    bool needChildVisit(QueryTreeNodePtr &, QueryTreeNodePtr & /*child*/)
+    {
+        return !passed_node;
+    }
+
+    void enterImpl(QueryTreeNodePtr & node)
+    {
+        if (passed_node)
+            return;
+
+        auto node_type = node->getNodeType();
+
+        if (node_type == type)
+            passed_node = node;
+    }
+
+    QueryTreeNodePtr getNode() const { return passed_node; }
+
+private:
+    QueryTreeNodeType type;
+    QueryTreeNodePtr passed_node;
+};
+
+/*
+Helping class to find all used columns with specific source
+*/
+class CollectUsedColumnsForSourceVisitor : public InDepthQueryTreeVisitorWithContext<CollectUsedColumnsForSourceVisitor>
+{
+public:
+    using Base = InDepthQueryTreeVisitorWithContext<CollectUsedColumnsForSourceVisitor>;
+    using Base::Base;
+
+    explicit CollectUsedColumnsForSourceVisitor(
+        QueryTreeNodePtr source_,
+        ContextPtr context,
+        bool collect_columns_from_other_sources_ = false)
+        : Base(context)
+        , source(source_)
+        , collect_columns_from_other_sources(collect_columns_from_other_sources_)
+        {}
+
+    void enterImpl(QueryTreeNodePtr & node)
+    {
+        auto node_type = node->getNodeType();
+
+        if (node_type != QueryTreeNodeType::COLUMN)
+            return;
+
+        auto & column_node = node->as<ColumnNode &>();
+        auto column_source = column_node.getColumnSourceOrNull();
+        if (!column_source)
+            return;
+
+        if ((column_source == source) != collect_columns_from_other_sources)
+        {
+            const auto & name = column_node.getColumnName();
+            if (!names.count(name))
+            {
+                columns.emplace_back(column_node.getColumn());
+                names.insert(name);
+            }
+        }
+    }
+
+    const NamesAndTypes & getColumns() const { return columns; }
+
+private:
+    std::unordered_set<std::string> names;
+    QueryTreeNodePtr source;
+    NamesAndTypes columns;
+    bool collect_columns_from_other_sources;
+};
+
+};
+
+/*
+Try to make subquery to send on nodes
+Converts
+
+  SELECT s3.c1, s3.c2, t.c3
+  FROM
+    s3Cluster(...) AS s3
+  JOIN
+    localtable as t
+  ON s3.key == t.key
+
+to
+
+  SELECT s3.c1, s3.c2, s3.key
+  FROM
+    s3Cluster(...) AS s3
+*/
+void IStorageCluster::updateQueryWithJoinToSendIfNeeded(
+    ASTPtr & query_to_send,
+    QueryTreeNodePtr query_tree,
+    const ContextPtr & context)
+{
+    auto object_storage_cluster_join_mode = context->getSettingsRef()[Setting::object_storage_cluster_join_mode];
+    switch (object_storage_cluster_join_mode)
+    {
+    case ObjectStorageClusterJoinMode::LOCAL:
+    {
+        auto modified_query_tree = query_tree->clone();
+        bool need_modify = false;
+
+        SearcherVisitor table_function_searcher(QueryTreeNodeType::TABLE_FUNCTION, context);
+        table_function_searcher.visit(query_tree);
+        auto table_function_node = table_function_searcher.getNode();
+        if (!table_function_node)
+            throw Exception(ErrorCodes::LOGICAL_ERROR, "Can't find table function node");
+
+        if (has_join)
+        {
+            auto table_function = extractTableFunctionASTPtrFromSelectQuery(query_to_send);
+            auto query_tree_distributed = buildTableFunctionQueryTree(table_function, context);
+            auto & table_function_ast = table_function->as<ASTFunction &>();
+            query_tree_distributed->setAlias(table_function_ast.alias);
+
+            // Find add used columns from table function to make proper projection list
+            CollectUsedColumnsForSourceVisitor collector(table_function_node, context);
+            collector.visit(query_tree);
+            const auto & columns = collector.getColumns();
+
+            auto & query_node = modified_query_tree->as<QueryNode &>();
+            query_node.resolveProjectionColumns(columns);
+            auto column_nodes_to_select = std::make_shared<ListNode>();
+            column_nodes_to_select->getNodes().reserve(columns.size());
+            for (auto & column : columns)
+                column_nodes_to_select->getNodes().emplace_back(std::make_shared<ColumnNode>(column, table_function_node));
+            query_node.getProjectionNode() = column_nodes_to_select;
+
+            // Left only table function to send on cluster nodes
+            modified_query_tree = modified_query_tree->cloneAndReplace(query_node.getJoinTree(), query_tree_distributed);
+
+            need_modify = true;
+        }
+
+        if (has_local_columns_in_where)
+        {
+            auto & query_node = modified_query_tree->as<QueryNode &>();
+            query_node.getWhere() = {};
+        }
+
+        if (need_modify)
+            query_to_send = queryNodeToDistributedSelectQuery(modified_query_tree);
+        return;
+    }
+    case ObjectStorageClusterJoinMode::GLOBAL:
+        // TODO
+        throw Exception(ErrorCodes::NOT_IMPLEMENTED, "`Global` mode for `object_storage_cluster_join_mode` setting is unimplemented for now");
+    case ObjectStorageClusterJoinMode::ALLOW: // Do nothing special
+        return;
+    }
+}
+
 /// The code executes on initiator
 void IStorageCluster::read(
     QueryPlan & query_plan,
@@ -133,26 +270,36 @@ void IStorageCluster::read(
     SelectQueryInfo & query_info,
     ContextPtr context,
     QueryProcessingStage::Enum processed_stage,
-    size_t /*max_block_size*/,
-    size_t /*num_streams*/)
+    size_t max_block_size,
+    size_t num_streams)
 {
+    auto cluster_name_from_settings = getClusterName(context);
+
+    if (cluster_name_from_settings.empty())
+    {
+        readFallBackToPure(query_plan, column_names, storage_snapshot, query_info, context, processed_stage, max_block_size, num_streams);
+        return;
+    }
+
     storage_snapshot->check(column_names);
 
     updateBeforeRead(context);
-    auto cluster = getCluster(context);
+    auto cluster = getClusterImpl(context, cluster_name_from_settings, context->getSettingsRef()[Setting::object_storage_max_nodes]);
 
     /// Calculate the header. This is significant, because some columns could be thrown away in some cases like query with count(*)
 
     SharedHeader sample_block;
     ASTPtr query_to_send = query_info.query;
 
+    updateQueryWithJoinToSendIfNeeded(query_to_send, query_info.query_tree, context);
+
     if (context->getSettingsRef()[Setting::allow_experimental_analyzer])
     {
-        sample_block = InterpreterSelectQueryAnalyzer::getSampleBlock(query_info.query, context, SelectQueryOptions(processed_stage));
+        sample_block = InterpreterSelectQueryAnalyzer::getSampleBlock(query_to_send, context, SelectQueryOptions(processed_stage));
     }
     else
     {
-        auto interpreter = InterpreterSelectQuery(query_info.query, context, SelectQueryOptions(processed_stage).analyze());
+        auto interpreter = InterpreterSelectQuery(query_to_send, context, SelectQueryOptions(processed_stage).analyze());
         sample_block = interpreter.getSampleBlock();
         query_to_send = interpreter.getQueryInfo().query->clone();
     }
@@ -160,7 +307,7 @@ void IStorageCluster::read(
     updateQueryToSendIfNeeded(query_to_send, storage_snapshot, context);
 
     RestoreQualifiedNamesVisitor::Data data;
-    data.distributed_table = DatabaseAndTableWithAlias(*getTableExpression(query_info.query->as<ASTSelectQuery &>(), 0));
+    data.distributed_table = DatabaseAndTableWithAlias(*getTableExpression(query_to_send->as<ASTSelectQuery &>(), 0));
     data.remote_table.database = context->getCurrentDatabase();
     data.remote_table.table = getName();
     RestoreQualifiedNamesVisitor(data).visit(query_to_send);
@@ -184,6 +331,20 @@ void IStorageCluster::read(
         log);
 
     query_plan.addStep(std::move(reading));
+}
+
+SinkToStoragePtr IStorageCluster::write(
+    const ASTPtr & query,
+    const StorageMetadataPtr & metadata_snapshot,
+    ContextPtr context,
+    bool async_insert)
+{
+    auto cluster_name_from_settings = getClusterName(context);
+
+    if (cluster_name_from_settings.empty())
+        return writeFallBackToPure(query, metadata_snapshot, context, async_insert);
+
+    throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Method write is not supported by storage {}", getName());
 }
 
 void ReadFromCluster::initializePipeline(QueryPipelineBuilder & pipeline, const BuildQueryPipelineSettings &)
@@ -255,8 +416,40 @@ void ReadFromCluster::initializePipeline(QueryPipelineBuilder & pipeline, const 
 }
 
 QueryProcessingStage::Enum IStorageCluster::getQueryProcessingStage(
-    ContextPtr context, QueryProcessingStage::Enum to_stage, const StorageSnapshotPtr &, SelectQueryInfo &) const
+    ContextPtr context, QueryProcessingStage::Enum to_stage, const StorageSnapshotPtr &, SelectQueryInfo & query_info) const
 {
+    auto object_storage_cluster_join_mode = context->getSettingsRef()[Setting::object_storage_cluster_join_mode];
+
+    if (object_storage_cluster_join_mode != ObjectStorageClusterJoinMode::ALLOW)
+    {
+        if (!context->getSettingsRef()[Setting::allow_experimental_analyzer])
+            throw Exception(ErrorCodes::NOT_IMPLEMENTED,
+                "object_storage_cluster_join_mode!='allow' is not supported without allow_experimental_analyzer=true");
+
+        SearcherVisitor join_searcher(QueryTreeNodeType::JOIN, context);
+        join_searcher.visit(query_info.query_tree);
+        if (join_searcher.getNode())
+            has_join = true;
+
+        SearcherVisitor table_function_searcher(QueryTreeNodeType::TABLE_FUNCTION, context);
+        table_function_searcher.visit(query_info.query_tree);
+        auto table_function_node = table_function_searcher.getNode();
+        if (!table_function_node)
+            throw Exception(ErrorCodes::LOGICAL_ERROR, "Can't find table function node");
+
+        CollectUsedColumnsForSourceVisitor collector_where(table_function_node, context, true);
+        auto & query_node = query_info.query_tree->as<QueryNode &>();
+        if (query_node.hasWhere())
+            collector_where.visit(query_node.getWhere());
+
+        // Can't use 'WHERE' on remote node if it contains columns from other sources
+        if (!collector_where.getColumns().empty())
+            has_local_columns_in_where = true;
+
+        if (has_join || has_local_columns_in_where)
+            return QueryProcessingStage::Enum::FetchColumns;
+    }
+
     /// Initiator executes query on remote node.
     if (context->getClientInfo().query_kind == ClientInfo::QueryKind::INITIAL_QUERY)
         if (to_stage >= QueryProcessingStage::Enum::WithMergeableState)
@@ -278,9 +471,9 @@ ContextPtr ReadFromCluster::updateSettings(const Settings & settings)
     return new_context;
 }
 
-ClusterPtr IStorageCluster::getCluster(ContextPtr context) const
+ClusterPtr IStorageCluster::getClusterImpl(ContextPtr context, const String & cluster_name_, size_t max_hosts)
 {
-    return context->getCluster(cluster_name)->getClusterWithReplicasAsShards(context->getSettingsRef());
+    return context->getCluster(cluster_name_)->getClusterWithReplicasAsShards(context->getSettingsRef(), /* max_replicas_from_shard */ 0, max_hosts);
 }
 
 }

@@ -87,7 +87,7 @@ public:
     bool isArchive() const override { return url.archive_pattern.has_value(); }
     std::string getPathInArchive() const override;
 
-    void check(ContextPtr context) const override;
+    void check(ContextPtr context) override;
     void validateNamespace(const String & name) const override;
     bool isStaticConfiguration() const override { return static_configuration; }
 
@@ -99,6 +99,8 @@ public:
         const String & format,
         ContextPtr context,
         bool with_structure) override;
+
+    ASTPtr createArgsWithAccessData() const override;
 
     static ASTPtr extractExtraCredentials(ASTs & args);
     static bool collectCredentials(ASTPtr maybe_credentials, S3::S3AuthSettings & auth_settings_, ContextPtr local_context);

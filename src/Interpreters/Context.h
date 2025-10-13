@@ -378,7 +378,8 @@ protected:
     UInt64 client_protocol_version = 0;
 
     /// Max block numbers in partitions to read from MergeTree tables.
-    PartitionIdToMaxBlockPtr partition_id_to_max_block;
+    /// Saved separately for each table uuid used in the query.
+    std::unordered_map<UUID, PartitionIdToMaxBlockPtr> partition_id_to_max_block;
 
 public:
     /// Record entities accessed by current query, and store this information in system.query_log.
@@ -1322,6 +1323,8 @@ public:
     size_t getClustersVersion() const;
 
     void startClusterDiscovery();
+    void registerInAutodiscoveryClusters();
+    void unregisterInAutodiscoveryClusters();
 
     /// Sets custom cluster, but doesn't update configuration
     void setCluster(const String & cluster_name, const std::shared_ptr<Cluster> & cluster);
@@ -1436,6 +1439,15 @@ public:
     void stopServers(const ServerType & server_type) const;
 
     void shutdown();
+
+    /// Stop some works to allow graceful shutdown later.
+    /// Returns true if stop successful.
+    bool stopSwarmMode();
+    /// Resume some works if we change our mind.
+    /// Returns true if start successful.
+    bool startSwarmMode();
+    /// Return current swarm mode state.
+    bool isSwarmModeEnabled() const;
 
     bool isInternalQuery() const { return is_internal_query; }
     void setInternalQuery(bool internal) { is_internal_query = internal; }
@@ -1580,8 +1592,8 @@ public:
     void setPreparedSetsCache(const PreparedSetsCachePtr & cache);
     PreparedSetsCachePtr getPreparedSetsCache() const;
 
-    void setPartitionIdToMaxBlock(PartitionIdToMaxBlockPtr partitions);
-    PartitionIdToMaxBlockPtr getPartitionIdToMaxBlock() const;
+    void setPartitionIdToMaxBlock(const UUID & table_uuid, PartitionIdToMaxBlockPtr partitions);
+    PartitionIdToMaxBlockPtr getPartitionIdToMaxBlock(const UUID & table_uuid) const;
 
     const ServerSettings & getServerSettings() const;
 
