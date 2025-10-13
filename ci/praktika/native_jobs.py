@@ -398,9 +398,23 @@ def _config_workflow(workflow: Workflow.Config, job_name) -> Result:
 
             affected_artifacts = []
             unaffected_jobs_with_artifacts = {}
-            # NOTE (strtgbb): We always want the build artifacts for our report and regression tests.
+            all_required_artifacts = set()
+
+            # NOTE (strtgbb): We always want these build artifacts for our report and regression tests.
             # If we make FinishCIReport and regression tests into praktika jobs, we can remove this.
-            all_required_artifacts = set(["CH_AMD_RELEASE", "CH_ARM_RELEASE"])
+            if "CIReport" in workflow.additional_jobs:
+                all_required_artifacts.update(["CH_AMD_RELEASE", "CH_ARM_RELEASE"])
+            if (
+                "Regression" in workflow.additional_jobs
+                and "regression"
+                not in workflow_config.custom_data.get("ci_exclude_tags", [])
+            ):
+                all_required_artifacts.update(["CH_AMD_BINARY"])
+                if "aarch64" not in workflow_config.custom_data.get(
+                    "ci_exclude_tags", []
+                ):
+                    all_required_artifacts.update(["CH_ARM_BINARY"])
+            print(f"Including artifacts for custom jobs [{all_required_artifacts}]")
 
             for job in workflow.jobs:
                 # Skip native Praktika jobs

@@ -122,6 +122,7 @@ env:
   pr_number: ${{ github.event.number }}
   event_name: ${{ github.event_name }}
   version: ${{ fromJson(inputs.workflow_config).custom_data.version.string }}
+  SKIP_LIST: ${{ join(fromJson(inputs.workflow_config).custom_data.ci_exclude_tags, '|') || '' }}
 
 jobs:
   runner_labels_setup:
@@ -147,6 +148,9 @@ jobs:
           input: ${{ inputs.runner_type }}
 
   Common:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'common')
     strategy:
       fail-fast: false
       matrix:
@@ -211,6 +215,9 @@ jobs:
           path: ${{ env.artifact_paths}}
 
   AggregateFunctions:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'aggregate_functions')
     strategy:
       fail-fast: false
       matrix:
@@ -276,6 +283,9 @@ jobs:
           name: ${{ env.SUITE }}-${{ matrix.PART }}-${{ inputs.arch }}-artifacts
           path: ${{ env.artifact_paths}}
   Alter:
+   if: |
+     fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+     contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'alter')
    strategy:
      fail-fast: false
      matrix:
@@ -348,6 +358,9 @@ jobs:
           path: ${{ env.artifact_paths}}
 
   Benchmark:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'benchmark')
     strategy:
       fail-fast: false
       matrix:
@@ -421,6 +434,9 @@ jobs:
           path: ${{ env.artifact_paths }}
 
   ClickHouseKeeper:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'clickhouse_keeper')
     strategy:
       fail-fast: false
       matrix:
@@ -490,6 +506,9 @@ jobs:
           path: ${{ env.artifact_paths }}
 
   Iceberg:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'iceberg')
     strategy:
       fail-fast: false
       matrix:
@@ -561,6 +580,9 @@ jobs:
           name: ${{ env.SUITE }}-${{ matrix.PART }}-${{ inputs.arch }}-artifacts
           path: ${{ env.artifact_paths}}
   LDAP:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'ldap')
     strategy:
       fail-fast: false
       matrix:
@@ -625,6 +647,9 @@ jobs:
           path: ${{ env.artifact_paths }}
 
   Parquet:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'parquet')
     needs: [runner_labels_setup]
     runs-on: ${{ fromJson(needs.runner_labels_setup.outputs.runner_labels) }}
     timeout-minutes: ${{ inputs.timeout_minutes }}
@@ -685,6 +710,9 @@ jobs:
           path: ${{ env.artifact_paths }}
 
   ParquetS3:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'parquet')
     strategy:
       fail-fast: false
       matrix:
@@ -756,6 +784,9 @@ jobs:
 
 
   RBAC:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'rbac')
     strategy:
       fail-fast: false
       matrix:
@@ -821,6 +852,9 @@ jobs:
           name: ${{ env.SUITE }}-${{ matrix.PART }}-${{ inputs.arch }}-artifacts
           path: ${{ env.artifact_paths}}
   SSLServer:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'ssl_server')
     strategy:
       fail-fast: false
       matrix:
@@ -887,6 +921,9 @@ jobs:
           path: ${{ env.artifact_paths}}
 
   S3:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 's3')
     strategy:
       fail-fast: false
       matrix:
@@ -969,6 +1006,9 @@ jobs:
           path: ${{ env.artifact_paths}}
 
   TieredStorage:
+    if: |
+      fromJson(inputs.workflow_config).custom_data.ci_regression_jobs[0] == null ||
+      contains(fromJson(inputs.workflow_config).custom_data.ci_regression_jobs, 'tiered_storage')
     strategy:
       fail-fast: false
       matrix:
