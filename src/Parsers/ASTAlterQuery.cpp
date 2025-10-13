@@ -360,8 +360,7 @@ void ASTAlterCommand::formatImpl(WriteBuffer & ostr, const FormatSettings & sett
     }
     else if (type == ASTAlterCommand::EXPORT_PART)
     {
-        ostr << (settings.hilite ? hilite_keyword : "") << "EXPORT " << "PART"
-             << (settings.hilite ? hilite_none : "");
+        ostr << "EXPORT PART ";
         partition->format(ostr, settings, state, frame);
         ostr << " TO ";
         switch (move_destination_type)
@@ -370,11 +369,9 @@ void ASTAlterCommand::formatImpl(WriteBuffer & ostr, const FormatSettings & sett
                 ostr << "TABLE ";
                 if (!to_database.empty())
                 {
-                    ostr << (settings.hilite ? hilite_identifier : "") << backQuoteIfNeed(to_database)
-                         << (settings.hilite ? hilite_none : "") << ".";
+                    ostr << backQuoteIfNeed(to_database) << ".";
                 }
-                ostr << (settings.hilite ? hilite_identifier : "") << backQuoteIfNeed(to_table)
-                     << (settings.hilite ? hilite_none : "");
+                ostr << backQuoteIfNeed(to_table);
                 return;
             default:
                 break;
