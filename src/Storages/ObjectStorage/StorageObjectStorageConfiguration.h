@@ -274,15 +274,16 @@ public:
         return false;
     }
 
+    PartitionStrategyFactory::StrategyType partition_strategy_type = PartitionStrategyFactory::StrategyType::NONE;
+    std::shared_ptr<IPartitionStrategy> partition_strategy;
+    /// Whether partition column values are contained in the actual data.
+    /// And alternative is with hive partitioning, when they are contained in file path.
+    bool partition_columns_in_data_file = true;
+
 private:
     String format = "auto";
     String compression_method = "auto";
     String structure = "auto";
-    PartitionStrategyFactory::StrategyType partition_strategy_type = PartitionStrategyFactory::StrategyType::NONE;
-    /// Whether partition column values are contained in the actual data.
-    /// And alternative is with hive partitioning, when they are contained in file path.
-    bool partition_columns_in_data_file = true;
-    std::shared_ptr<IPartitionStrategy> partition_strategy;
 
 protected:
     bool initialized = false;
