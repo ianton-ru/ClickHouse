@@ -130,6 +130,7 @@ public:
         std::string & /* destination_file_path */,
         bool /* overwrite_if_exists */,
         ContextPtr /* context */) override;
+    bool prefersLargeBlocks() const override;
 
 private:
     void updateQueryToSendIfNeeded(
