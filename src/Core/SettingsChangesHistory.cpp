@@ -119,6 +119,7 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"allow_experimental_lightweight_update", false, true, "Lightweight updates were moved to Beta."},
             {"s3_slow_all_threads_after_retryable_error", false, false, "Added an alias for setting `backup_slow_all_threads_after_retryable_s3_error`"},
             {"iceberg_metadata_log_level", "none", "none", "New setting."},
+            {"use_object_storage_list_objects_cache", false, false, "New setting."},
         });
         addSettingsChanges(settings_changes_history, "25.7",
         {

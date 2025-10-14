@@ -48,6 +48,7 @@
 #include <Parsers/ASTSetQuery.h>
 #include <Parsers/ASTSystemQuery.h>
 #include <Processors/Sources/SourceFromSingleChunk.h>
+#include <Storages/Cache/ObjectStorageListObjectsCache.h>
 #include <Storages/Freeze.h>
 #include <Storages/MaterializedView/RefreshTask.h>
 #include <Storages/ObjectStorage/Azure/Configuration.h>
@@ -438,6 +439,12 @@ BlockIO InterpreterSystemQuery::execute()
         {
             getContext()->checkAccess(AccessType::SYSTEM_DROP_QUERY_CACHE);
             getContext()->clearQueryResultCache(query.query_result_cache_tag);
+            break;
+        }
+        case Type::DROP_OBJECT_STORAGE_LIST_OBJECTS_CACHE:
+        {
+            getContext()->checkAccess(AccessType::SYSTEM_DROP_OBJECT_STORAGE_LIST_OBJECTS_CACHE);
+            ObjectStorageListObjectsCache::instance().clear();
             break;
         }
         case Type::DROP_PARQUET_METADATA_CACHE:
@@ -1603,6 +1610,7 @@ AccessRightsElements InterpreterSystemQuery::getRequiredAccessForDDLOnCluster() 
         case Type::DROP_PAGE_CACHE:
         case Type::DROP_SCHEMA_CACHE:
         case Type::DROP_FORMAT_SCHEMA_CACHE:
+        case Type::DROP_OBJECT_STORAGE_LIST_OBJECTS_CACHE:
         case Type::DROP_PARQUET_METADATA_CACHE:
         case Type::DROP_S3_CLIENT_CACHE:
         {
