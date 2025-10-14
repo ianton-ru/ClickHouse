@@ -274,13 +274,14 @@ SELECT 'Read predicate-filtered data with analyzer enabled and prefer localhost 
 SELECT * FROM test_tiered_watermark ORDER BY id SETTINGS enable_analyzer = 1, prefer_localhost_replica = 1;
 
 -- other combinations of settings work, but give a bit different content in the query_log
+-- See the problem around is_initial_query described in https://github.com/Altinity/ClickHouse/issues/1077
 SELECT 'Check if the subqueries were recorded in query_log';
 
 SELECT * FROM test_tiered_watermark ORDER BY id DESC SETTINGS enable_analyzer = 1, prefer_localhost_replica = 0, log_queries=1, serialize_query_plan=0, log_comment = 'test_tiered_watermark', max_threads=1 FORMAT Null;
 SYSTEM FLUSH LOGS;
 SELECT
     type,
-    is_initial_query,
+    query_id = initial_query_id AS is_initial_query2,
     arraySort(arrayMap(x -> replaceAll(x, currentDatabase(), 'db'), tables)) as tbl,
     replaceAll(query, currentDatabase(), 'db') as qry,
     log_comment
@@ -294,7 +295,7 @@ WHERE
         event_time > now() - 300
         and log_comment = 'test_tiered_watermark'
         and current_database = currentDatabase()
-        and is_initial_query )
+        and query_id = initial_query_id )
 ORDER BY tbl, event_time_microseconds
 FORMAT Vertical;
 
