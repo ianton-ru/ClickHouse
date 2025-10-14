@@ -2111,7 +2111,7 @@ SinkToStoragePtr StorageFile::write(
             partition_strategy,
             sink_creator,
             context,
-            metadata_snapshot->getSampleBlock()
+            std::make_shared<const Block>(metadata_snapshot->getSampleBlock())
         );
     }
 

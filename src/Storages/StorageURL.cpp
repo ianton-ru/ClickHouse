@@ -1459,7 +1459,7 @@ SinkToStoragePtr IStorageURLBase::write(const ASTPtr & query, const StorageMetad
             headers,
             http_method);
 
-        return std::make_shared<PartitionedSink>(partition_strategy, sink_creator, context, metadata_snapshot->getSampleBlock());
+        return std::make_shared<PartitionedSink>(partition_strategy, sink_creator, context, std::make_shared<const Block>(metadata_snapshot->getSampleBlock()));
     }
 
     return std::make_shared<StorageURLSink>(
