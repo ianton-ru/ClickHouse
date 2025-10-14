@@ -24,7 +24,7 @@ ExportsListElement::ExportsListElement(
 , total_size_bytes_uncompressed(total_size_bytes_uncompressed_)
 , create_time(create_time_)
 {
-    thread_group = ThreadGroup::createForBackgroundProcess(context);
+    thread_group = ThreadGroup::createForMergeMutate(context);
 }
 
 ExportsListElement::~ExportsListElement()
