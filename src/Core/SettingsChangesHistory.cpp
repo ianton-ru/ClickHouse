@@ -47,6 +47,7 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"object_storage_cluster", "", "", "New setting"},
             {"object_storage_max_nodes", 0, 0, "New setting"},
             {"allow_retries_in_cluster_requests", false, false, "New setting"},
+            {"object_storage_remote_initiator", false, false, "New setting."},
         });
         addSettingsChanges(settings_changes_history, "25.8",
         {
