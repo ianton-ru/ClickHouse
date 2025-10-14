@@ -1,4 +1,4 @@
--- Tags: no-parallel
+-- Tags: no-parallel, no-fasttest
 
 DROP TABLE IF EXISTS 03572_rmt_table, 03572_invalid_schema_table;
 
