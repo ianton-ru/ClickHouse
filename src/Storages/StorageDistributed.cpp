@@ -5,7 +5,6 @@
 #include <Disks/IDisk.h>
 
 #include <QueryPipeline/RemoteQueryExecutor.h>
-#include <Processors/QueryPlan/DistributedCreateLocalPlan.h>
 
 #include <DataTypes/DataTypeFactory.h>
 #include <DataTypes/DataTypeLowCardinality.h>
@@ -99,7 +98,6 @@
 #include <Processors/QueryPlan/QueryPlan.h>
 #include <Processors/QueryPlan/ReadFromPreparedSource.h>
 #include <Processors/QueryPlan/ExpressionStep.h>
-#include <Processors/QueryPlan/UnionStep.h>
 #include <Processors/QueryPlan/Optimizations/actionsDAGUtils.h>
 #include <Processors/QueryPlan/Optimizations/QueryPlanOptimizationSettings.h>
 #include <Processors/Sources/NullSource.h>
@@ -1075,20 +1073,9 @@ void StorageDistributed::read(
 
     SelectQueryInfo modified_query_info = query_info;
 
-    std::vector<SelectQueryInfo> all_query_infos;
+    std::vector<SelectQueryInfo> additional_query_infos;
 
     const auto & settings = local_context->getSettingsRef();
-
-    // Disable memory_bound settings when additional table functions are present
-    // to avoid UNKNOWN_AGGREGATED_DATA_VARIANT when mixing different aggregation variants
-    // from remote shards (with memory_bound) and local layers (without memory_bound)
-    // FIXME: we can push additional_query_info into ClusterProxy::executeQuery to avoid this hack
-    // TODO: test is needed
-    if (!additional_table_functions.empty())
-    {
-        const_cast<Context *>(local_context.get())->setSetting("enable_memory_bound_merging_of_aggregation_results", false);
-        const_cast<Context *>(local_context.get())->setSetting("distributed_aggregation_memory_efficient", false);
-    }
 
     if (settings[Setting::allow_experimental_analyzer])
     {
@@ -1130,7 +1117,7 @@ void StorageDistributed::read(
                 additional_query_info.query = queryNodeToDistributedSelectQuery(additional_query_tree);
                 additional_query_info.query_tree = std::move(additional_query_tree);
 
-                all_query_infos.push_back(additional_query_info);
+                additional_query_infos.push_back(std::move(additional_query_info));
             }
         }
 
@@ -1169,7 +1156,7 @@ void StorageDistributed::read(
                         table_function_entry.predicate_ast);
                 }
 
-                all_query_infos.push_back(additional_query_info);
+                additional_query_infos.push_back(std::move(additional_query_info));
             }
         }
 
@@ -1187,7 +1174,7 @@ void StorageDistributed::read(
 
     const auto & snapshot_data = assert_cast<const SnapshotData &>(*storage_snapshot->data);
 
-    if (!modified_query_info.getCluster()->getShardsInfo().empty())
+    if (!modified_query_info.getCluster()->getShardsInfo().empty() || !additional_query_infos.empty())
     {
         ClusterProxy::SelectStreamFactory select_stream_factory =
             ClusterProxy::SelectStreamFactory(
@@ -1213,75 +1200,12 @@ void StorageDistributed::read(
             sharding_key_column_name,
             *distributed_settings,
             shard_filter_generator,
-            is_remote_function);
+            is_remote_function,
+            additional_query_infos);
 
         /// This is a bug, it is possible only when there is no shards to query, and this is handled earlier.
         if (!query_plan.isInitialized())
             throw Exception(ErrorCodes::LOGICAL_ERROR, "Pipeline is not initialized");
-    }
-
-    std::vector<QueryPlan> additional_plans;
-    const Block * header_raw = header.get();
-    if (!header_raw)
-        throw Exception(ErrorCodes::LOGICAL_ERROR, "Header is not initialized for local plan creation");
-
-    const Block & header_block = *header_raw;
-
-    for (size_t i = 0; i < all_query_infos.size(); ++i)
-    {
-        auto additional_query_info = all_query_infos[i];
-
-        // This properly handles both analyzer and legacy modes with converting actions
-        auto additional_plan_ptr = createLocalPlan(
-            additional_query_info.query,
-            header_block,
-            local_context,
-            processed_stage,
-            0, // shard_num - not applicable for local plans
-            1, // shard_count - not applicable for local plans
-            false, // has_missing_objects
-            false, // build_logical_plan
-            ""); // default_database
-
-        additional_plans.push_back(std::move(*additional_plan_ptr));
-    }
-
-    // Combine all plans using UnionStep
-    if (!additional_plans.empty())
-    {
-        // Convert QueryPlan objects to QueryPlanPtr
-        std::vector<QueryPlanPtr> plan_ptrs;
-        plan_ptrs.reserve(additional_plans.size() + (query_plan.isInitialized() ? 1 : 0));
-
-        // Add the main plan to the list
-        if (query_plan.isInitialized())
-            plan_ptrs.push_back(std::make_unique<QueryPlan>(std::move(query_plan)));
-
-        // Add additional plans
-        for (auto & plan : additional_plans)
-        {
-            plan_ptrs.push_back(std::make_unique<QueryPlan>(std::move(plan)));
-        }
-
-        // Create a new query plan that unions all the results
-        QueryPlan union_plan;
-
-        // Get headers from all plans
-        SharedHeaders headers;
-        headers.reserve(plan_ptrs.size());
-        for (const auto & plan_ptr : plan_ptrs)
-        {
-            headers.emplace_back(plan_ptr->getCurrentHeader());
-        }
-
-        // Create UnionStep to combine all plans
-        auto union_step = std::make_unique<UnionStep>(std::move(headers), 0);
-        union_step->setStepDescription("Hybrid");
-
-        union_plan.unitePlans(std::move(union_step), std::move(plan_ptrs));
-
-        // Replace the original query plan with the union plan
-        query_plan = std::move(union_plan);
     }
 }
 

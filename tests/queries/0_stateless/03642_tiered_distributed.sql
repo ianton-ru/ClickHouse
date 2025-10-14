@@ -337,3 +337,9 @@ DROP TABLE IF EXISTS test_tiered_watermark_before SYNC;
 -- Condition with dictGet('a1_watermarks_dict', ...)
 
 -- access rights check
+
+
+-- TODO:
+-- test for distributed_aggregation_memory_efficient & enable_memory_bound_merging_of_aggregation_results
+-- to avoid UNKNOWN_AGGREGATED_DATA_VARIANT when mixing different aggregation variants
+-- from remote shards (with memory_bound) and local layers (without memory_bound)
