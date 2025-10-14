@@ -501,7 +501,7 @@ SinkToStoragePtr StorageObjectStorage::import(
         object_storage,
         configuration,
         format_settings,
-        getInMemoryMetadataPtr()->getSampleBlock(),
+        std::make_shared<const Block>(getInMemoryMetadataPtr()->getSampleBlock()),
         local_context);
 }
 

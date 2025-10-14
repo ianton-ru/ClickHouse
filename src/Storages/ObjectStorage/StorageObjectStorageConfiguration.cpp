@@ -88,15 +88,15 @@ void StorageObjectStorageConfiguration::initialize(
         }
     }
 
-    if (configuration_to_initialize.partition_strategy_type == PartitionStrategyFactory::StrategyType::HIVE)
+    if (partition_strategy_type == PartitionStrategyFactory::StrategyType::HIVE)
     {
-        configuration_to_initialize.file_path_generator = std::make_shared<ObjectStorageAppendFilePathGenerator>(
-            configuration_to_initialize.getRawPath().path,
-            configuration_to_initialize.format);
+        file_path_generator = std::make_shared<ObjectStorageAppendFilePathGenerator>(
+            getRawPath().path,
+            format);
     }
     else
     {
-        configuration_to_initialize.file_path_generator = std::make_shared<ObjectStorageWildcardFilePathGenerator>(configuration_to_initialize.getRawPath().path);
+        file_path_generator = std::make_shared<ObjectStorageWildcardFilePathGenerator>(getRawPath().path);
     }
 
     if (format == "auto")
@@ -116,7 +116,7 @@ void StorageObjectStorageConfiguration::initialize(
     else
         FormatFactory::instance().checkFormatName(format);
 
-    configuration_to_initialize.read_path = configuration_to_initialize.file_path_generator->getPathForRead();
+    read_path = file_path_generator->getPathForRead();
     initialized = true;
 }
 
@@ -149,7 +149,7 @@ StorageObjectStorageConfiguration::Path StorageObjectStorageConfiguration::getPa
     return getPathForWrite(partition_id, /* filename_override */ "");
 }
 
-StorageObjectStorage::Configuration::Path StorageObjectStorage::Configuration::getPathForWrite(const std::string & partition_id, const std::string & filename_override) const
+StorageObjectStorageConfiguration::Path StorageObjectStorageConfiguration::getPathForWrite(const std::string & partition_id, const std::string & filename_override) const
 {
     return Path {file_path_generator->getPathForWrite(partition_id, filename_override)};
 }
