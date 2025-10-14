@@ -158,6 +158,8 @@ namespace ProfileEvents
     extern const Event BackupThrottlerSleepMicroseconds;
     extern const Event MergesThrottlerBytes;
     extern const Event MergesThrottlerSleepMicroseconds;
+    extern const Event ExportsThrottlerBytes;
+    extern const Event ExportsThrottlerSleepMicroseconds;
     extern const Event MutationsThrottlerBytes;
     extern const Event MutationsThrottlerSleepMicroseconds;
     extern const Event QueryLocalReadThrottlerBytes;
