@@ -1214,7 +1214,7 @@ def test_filesystem_cache(started_cluster, storage_type):
 
 @pytest.mark.parametrize(
     "storage_type, run_on_cluster",
-    [("s3", False), ("s3", True), ("azure", False), ("local", False)],
+    [("s3", False), ("s3", True), ("azure", False), ("azure", True), ("local", False)],
 )
 def test_partition_pruning(started_cluster, storage_type, run_on_cluster):
     instance = started_cluster.instances["node1"]
@@ -2051,7 +2051,10 @@ def test_explicit_metadata_file(started_cluster, storage_type):
 
 
 @pytest.mark.parametrize("storage_type", ["s3", "azure", "local"])
-def test_minmax_pruning_with_null(started_cluster, storage_type):
+@pytest.mark.parametrize("run_on_cluster", [False, True])
+def test_minmax_pruning_with_null(started_cluster, storage_type, run_on_cluster):
+    if run_on_cluster and storage_type == "local":
+        pytest.skip("Local storage is not supported on cluster")
     instance = started_cluster.instances["node1"]
     spark = started_cluster.spark_session
     TABLE_NAME = "test_minmax_pruning_with_null" + storage_type + "_" + get_uuid_str()
@@ -2121,7 +2124,7 @@ def test_minmax_pruning_with_null(started_cluster, storage_type):
     )
 
     creation_expression = get_creation_expression(
-        storage_type, TABLE_NAME, started_cluster, table_function=True
+        storage_type, TABLE_NAME, started_cluster, table_function=True, run_on_cluster=run_on_cluster
     )
 
     def check_validity_and_get_prunned_files(select_expression):
