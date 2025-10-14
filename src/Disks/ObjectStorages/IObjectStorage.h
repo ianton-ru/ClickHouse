@@ -367,6 +367,14 @@ public:
     }
     virtual std::shared_ptr<const S3::Client> tryGetS3StorageClient() { return nullptr; }
 #endif
+
+
+    virtual bool supportsListObjectsCache() { return false; }
+
+private:
+    mutable std::mutex throttlers_mutex;
+    ThrottlerPtr remote_read_throttler;
+    ThrottlerPtr remote_write_throttler;
 };
 
 using ObjectStoragePtr = std::shared_ptr<IObjectStorage>;
