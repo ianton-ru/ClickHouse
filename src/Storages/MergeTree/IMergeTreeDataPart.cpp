@@ -300,8 +300,11 @@ Block IMergeTreeDataPart::MinMaxIndex::getBlock(const MergeTreeData & data) cons
 
         const auto column = data_type->createColumn();
 
-        const auto min_val = hyperrectangle.at(i).left;
-        const auto max_val = hyperrectangle.at(i).right;
+        auto range = hyperrectangle.at(i);
+        range.shrinkToIncludedIfPossible();
+
+        const auto & min_val = range.left;
+        const auto & max_val = range.right;
 
         column->insert(min_val);
         column->insert(max_val);

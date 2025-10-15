@@ -161,8 +161,7 @@ bool StorageObjectStorageConfiguration::Path::hasPartitionWildcard() const
 
 bool StorageObjectStorageConfiguration::Path::hasExportFilenameWildcard() const
 {
-    static const String EXPORT_FILENAME_WILDCARD = "{_export_filename}";
-    return path.find(EXPORT_FILENAME_WILDCARD) != String::npos;
+    return path.find(ObjectStorageWildcardFilePathGenerator::FILE_WILDCARD) != String::npos;
 }
 
 

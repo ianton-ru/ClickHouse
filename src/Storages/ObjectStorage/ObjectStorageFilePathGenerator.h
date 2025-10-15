@@ -19,13 +19,14 @@ namespace DB
 
     struct ObjectStorageWildcardFilePathGenerator : ObjectStorageFilePathGenerator
     {
+        static constexpr const char * FILE_WILDCARD = "{_file}";
         explicit ObjectStorageWildcardFilePathGenerator(const std::string & raw_path_) : raw_path(raw_path_) {}
 
         using ObjectStorageFilePathGenerator::getPathForWrite;  // Bring base class overloads into scope
         std::string getPathForWrite(const std::string & partition_id, const std::string & file_name_override) const override
         {
             const auto partition_replaced_path = PartitionedSink::replaceWildcards(raw_path, partition_id);
-            const auto final_path = boost::replace_all_copy(partition_replaced_path, "{_export_filename}", file_name_override);
+            const auto final_path = boost::replace_all_copy(partition_replaced_path, FILE_WILDCARD, file_name_override);
             return final_path;
         }
 
