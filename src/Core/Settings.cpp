@@ -6871,6 +6871,9 @@ Possible values:
     DECLARE(Bool, use_roaring_bitmap_iceberg_positional_deletes, false, R"(
 Use roaring bitmap for iceberg positional deletes.
 )", 0) \
+    DECLARE(Bool, export_merge_tree_part_overwrite_file_if_exists, false, R"(
+Overwrite file if it already exists when exporting a merge tree part
+)", 0) \
     \
     /* ####################################################### */ \
     /* ########### START OF EXPERIMENTAL FEATURES ############ */ \
@@ -7080,6 +7083,9 @@ Execute request to object storage as remote on one of object_storage_cluster nod
     DECLARE_WITH_ALIAS(Bool, allow_experimental_time_series_aggregate_functions, false, R"(
 Experimental timeSeries* aggregate functions for Prometheus-like timeseries resampling, rate, delta calculation.
 )", EXPERIMENTAL, allow_experimental_ts_to_grid_aggregate_function) \
+    DECLARE_WITH_ALIAS(Bool, allow_experimental_export_merge_tree_part, false, R"(
+Experimental export merge tree part.
+)", EXPERIMENTAL, allow_experimental_export_merge_tree_part) \
     \
     DECLARE(String, promql_database, "", R"(
 Specifies the database name used by the 'promql' dialect. Empty string means the current database.

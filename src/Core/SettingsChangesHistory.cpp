@@ -159,6 +159,8 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"output_format_parquet_enum_as_byte_array", true, true, "Enable writing Enum as byte array in Parquet by default"},
             {"object_storage_cluster", "", "", "New setting"},
             {"object_storage_max_nodes", 0, 0, "New setting"},
+            {"allow_experimental_export_merge_tree_part", false, false, "New setting."},
+            {"export_merge_tree_part_overwrite_file_if_exists", false, false, "New setting."},
         });
         addSettingsChanges(settings_changes_history, "25.6",
         {

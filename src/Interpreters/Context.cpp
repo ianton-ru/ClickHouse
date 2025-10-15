@@ -35,6 +35,7 @@
 #include <Storages/MarkCache.h>
 #include <Storages/MergeTree/MergeList.h>
 #include <Storages/MergeTree/MovesList.h>
+#include <Storages/MergeTree/ExportList.h>
 #include <Storages/MergeTree/ReplicatedFetchList.h>
 #include <Storages/MergeTree/MergeTreeData.h>
 #include <Storages/MergeTree/MergeTreeSettings.h>
@@ -157,6 +158,8 @@ namespace ProfileEvents
     extern const Event BackupThrottlerSleepMicroseconds;
     extern const Event MergesThrottlerBytes;
     extern const Event MergesThrottlerSleepMicroseconds;
+    extern const Event ExportsThrottlerBytes;
+    extern const Event ExportsThrottlerSleepMicroseconds;
     extern const Event MutationsThrottlerBytes;
     extern const Event MutationsThrottlerSleepMicroseconds;
     extern const Event QueryLocalReadThrottlerBytes;
@@ -325,6 +328,7 @@ namespace ServerSetting
     extern const ServerSettingsUInt64 max_local_write_bandwidth_for_server;
     extern const ServerSettingsUInt64 max_merges_bandwidth_for_server;
     extern const ServerSettingsUInt64 max_mutations_bandwidth_for_server;
+    extern const ServerSettingsUInt64 max_exports_bandwidth_for_server;
     extern const ServerSettingsUInt64 max_remote_read_network_bandwidth_for_server;
     extern const ServerSettingsUInt64 max_remote_write_network_bandwidth_for_server;
     extern const ServerSettingsUInt64 max_replicated_fetches_network_bandwidth_for_server;
@@ -504,6 +508,7 @@ struct ContextSharedPart : boost::noncopyable
     GlobalOvercommitTracker global_overcommit_tracker;
     MergeList merge_list;                                       /// The list of executable merge (for (Replicated)?MergeTree)
     MovesList moves_list;                                       /// The list of executing moves (for (Replicated)?MergeTree)
+    ExportsList exports_list;                                   /// The list of executing exports (for (Replicated)?MergeTree)
     ReplicatedFetchList replicated_fetch_list;
     RefreshSet refresh_set;                                 /// The list of active refreshes (for MaterializedView)
     ConfigurationPtr users_config TSA_GUARDED_BY(mutex);                              /// Config with the users, profiles and quotas sections.
@@ -544,6 +549,8 @@ struct ContextSharedPart : boost::noncopyable
 
     mutable ThrottlerPtr mutations_throttler;               /// A server-wide throttler for mutations
     mutable ThrottlerPtr merges_throttler;                  /// A server-wide throttler for merges
+
+    mutable ThrottlerPtr exports_throttler;                /// A server-wide throttler for exports
 
     MultiVersion<Macros> macros;                            /// Substitutions extracted from config.
     std::unique_ptr<DDLWorker> ddl_worker TSA_GUARDED_BY(mutex); /// Process ddl commands from zk.
@@ -1055,6 +1062,9 @@ struct ContextSharedPart : boost::noncopyable
 
         if (auto bandwidth = server_settings[ServerSetting::max_merges_bandwidth_for_server])
             merges_throttler = std::make_shared<Throttler>(bandwidth, ProfileEvents::MergesThrottlerBytes, ProfileEvents::MergesThrottlerSleepMicroseconds);
+
+        if (auto bandwidth = server_settings[ServerSetting::max_exports_bandwidth_for_server])
+            exports_throttler = std::make_shared<Throttler>(bandwidth, ProfileEvents::ExportsThrottlerBytes, ProfileEvents::ExportsThrottlerSleepMicroseconds);
     }
 };
 
@@ -1212,6 +1222,8 @@ MergeList & Context::getMergeList() { return shared->merge_list; }
 const MergeList & Context::getMergeList() const { return shared->merge_list; }
 MovesList & Context::getMovesList() { return shared->moves_list; }
 const MovesList & Context::getMovesList() const { return shared->moves_list; }
+ExportsList & Context::getExportsList() { return shared->exports_list; }
+const ExportsList & Context::getExportsList() const { return shared->exports_list; }
 ReplicatedFetchList & Context::getReplicatedFetchList() { return shared->replicated_fetch_list; }
 const ReplicatedFetchList & Context::getReplicatedFetchList() const { return shared->replicated_fetch_list; }
 RefreshSet & Context::getRefreshSet() { return shared->refresh_set; }
@@ -4153,6 +4165,11 @@ ThrottlerPtr Context::getMutationsThrottler() const
 ThrottlerPtr Context::getMergesThrottler() const
 {
     return shared->merges_throttler;
+}
+
+ThrottlerPtr Context::getExportsThrottler() const
+{
+    return shared->exports_throttler;
 }
 
 void Context::reloadRemoteThrottlerConfig(size_t read_bandwidth, size_t write_bandwidth) const

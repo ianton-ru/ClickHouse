@@ -88,6 +88,17 @@ void StorageObjectStorageConfiguration::initialize(
         }
     }
 
+    if (partition_strategy_type == PartitionStrategyFactory::StrategyType::HIVE)
+    {
+        file_path_generator = std::make_shared<ObjectStorageAppendFilePathGenerator>(
+            getRawPath().path,
+            format);
+    }
+    else
+    {
+        file_path_generator = std::make_shared<ObjectStorageWildcardFilePathGenerator>(getRawPath().path);
+    }
+
     if (format == "auto")
     {
         if (isDataLakeConfiguration())
@@ -105,8 +116,7 @@ void StorageObjectStorageConfiguration::initialize(
     else
         FormatFactory::instance().checkFormatName(format);
 
-    /// It might be changed on `StorageObjectStorageConfiguration::initPartitionStrategy`
-    read_path = getRawPath();
+    read_path = file_path_generator->getPathForRead();
     initialized = true;
 }
 
@@ -124,7 +134,6 @@ void StorageObjectStorageConfiguration::initPartitionStrategy(ASTPtr partition_b
 
     if (partition_strategy)
     {
-        read_path = partition_strategy->getPathForRead(getRawPath().path);
         LOG_DEBUG(getLogger("StorageObjectStorageConfiguration"), "Initialized partition strategy {}", magic_enum::enum_name(partition_strategy_type));
     }
 }
@@ -136,14 +145,12 @@ const StorageObjectStorageConfiguration::Path & StorageObjectStorageConfiguratio
 
 StorageObjectStorageConfiguration::Path StorageObjectStorageConfiguration::getPathForWrite(const std::string & partition_id) const
 {
-    auto raw_path = getRawPath();
+    return getPathForWrite(partition_id, /* filename_override */ "");
+}
 
-    if (!partition_strategy)
-    {
-        return raw_path;
-    }
-
-    return Path {partition_strategy->getPathForWrite(raw_path.path, partition_id)};
+StorageObjectStorageConfiguration::Path StorageObjectStorageConfiguration::getPathForWrite(const std::string & partition_id, const std::string & filename_override) const
+{
+    return Path {file_path_generator->getPathForWrite(partition_id, filename_override)};
 }
 
 bool StorageObjectStorageConfiguration::Path::hasPartitionWildcard() const

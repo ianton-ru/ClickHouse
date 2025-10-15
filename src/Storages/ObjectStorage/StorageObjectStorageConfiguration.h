@@ -13,6 +13,7 @@
 #include <Storages/MutationCommands.h>
 #include <Storages/AlterCommands.h>
 #include <Storages/IStorage.h>
+#include <Storages/ObjectStorage/ObjectStorageFilePathGenerator.h>
 
 namespace DB
 {
@@ -93,6 +94,8 @@ public:
     virtual const Path & getPathForRead() const;
     // Path used for writing, it should not be globbed and might contain a partition key
     virtual Path getPathForWrite(const std::string & partition_id = "") const;
+
+    Path getPathForWrite(const std::string & partition_id, const std::string & filename_override) const;
 
     virtual void setPathForRead(const Path & path)
     {
@@ -271,15 +274,16 @@ public:
         return false;
     }
 
+    PartitionStrategyFactory::StrategyType partition_strategy_type = PartitionStrategyFactory::StrategyType::NONE;
+    std::shared_ptr<IPartitionStrategy> partition_strategy;
+    /// Whether partition column values are contained in the actual data.
+    /// And alternative is with hive partitioning, when they are contained in file path.
+    bool partition_columns_in_data_file = true;
+
 private:
     String format = "auto";
     String compression_method = "auto";
     String structure = "auto";
-    PartitionStrategyFactory::StrategyType partition_strategy_type = PartitionStrategyFactory::StrategyType::NONE;
-    /// Whether partition column values are contained in the actual data.
-    /// And alternative is with hive partitioning, when they are contained in file path.
-    bool partition_columns_in_data_file = true;
-    std::shared_ptr<IPartitionStrategy> partition_strategy;
 
 protected:
     bool initialized = false;
@@ -288,6 +292,8 @@ private:
     // Path used for reading, by default it is the same as `getRawPath`
     // When using `partition_strategy=hive`, a recursive reading pattern will be appended `'table_root/**.parquet'
     Path read_path;
+
+    std::shared_ptr<ObjectStorageFilePathGenerator> file_path_generator;
 };
 
 using StorageObjectStorageConfigurationPtr = std::shared_ptr<StorageObjectStorageConfiguration>;
