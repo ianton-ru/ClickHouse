@@ -4,6 +4,7 @@
 #include <Storages/PartitionedSink.h>
 #include <Poco/String.h>
 #include <Functions/generateSnowflakeID.h>
+#include <boost/algorithm/string/replace.hpp>
 
 namespace DB
 {
