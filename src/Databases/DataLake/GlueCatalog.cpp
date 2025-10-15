@@ -317,8 +317,10 @@ bool GlueCatalog::tryGetTableMetadata(
             {
                 result.setDataLakeSpecificProperties(DataLakeSpecificProperties{.iceberg_metadata_file_location = table_params.at("metadata_location")});
             }
-            else if (const auto & location = table_outcome.GetStorageDescriptor().GetLocation(); !location.empty())
+            else if (table_outcome.GetStorageDescriptor().LocationHasBeenSet())
             {
+                const auto & location = table_outcome.GetStorageDescriptor().GetLocation();
+
                 std::string location_with_slash = location;
                 if (!location_with_slash.ends_with('/'))
                     location_with_slash += '/';
@@ -509,6 +511,9 @@ bool GlueCatalog::classifyTimestampTZ(const String & column_name, const TableMet
     return false;
 }
 
+/// This function tries two resolve the metadata file path by following means:
+/// 1. Tries to read version-hint.text to get the latest version.
+/// 2. Lists all *.metadata.json files in the metadata directory and takes the most recent one.
 String GlueCatalog::resolveMetadataPathFromTableLocation(const String & table_location, const TableMetadata & table_metadata) const
 {
     // Construct path to version-hint.text
