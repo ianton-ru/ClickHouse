@@ -1228,8 +1228,8 @@ jobs:
           filter: tree:0
       - name: Create source tar
         run: |
-          mkdir -p "$TEMP_PATH/build_check/package_release"
-          cd .. && tar czf $TEMP_PATH/build_source.src.tar.gz ClickHouse/
+          sudo mkdir -p "/tmp/build_amd_release"
+          cd .. && tar czf /tmp/build_amd_release/build_source.src.tar.gz ClickHouse/
       - name: Upload source tar
         run: |
           if [ "$PR_NUMBER" -eq 0 ]; then
@@ -1238,4 +1238,4 @@ jobs:
               S3_PATH="PRs/$PR_NUMBER/$COMMIT_SHA/build_amd_release"
           fi
 
-          aws s3 cp $TEMP_PATH/build_source.src.tar.gz s3://altinity-build-artifacts/$S3_PATH/clickhouse-$VERSION.src.tar.gz
+          aws s3 cp /tmp/build_amd_release/build_source.src.tar.gz s3://altinity-build-artifacts/$S3_PATH/clickhouse-$VERSION.src.tar.gz
