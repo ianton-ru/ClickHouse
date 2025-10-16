@@ -822,12 +822,14 @@ void IcebergMetadata::addDeleteTransformers(
 
     if (!iceberg_object_info->position_deletes_objects.empty())
     {
+        LOG_DEBUG(log, "Constructing filter transform for position delete, there are {} delete objects", iceberg_object_info->position_deletes_objects.size());
         builder.addSimpleTransform(
             [&](const SharedHeader & header)
             { return iceberg_object_info->getPositionDeleteTransformer(object_storage, header, format_settings, local_context); });
     }
     const auto & delete_files = iceberg_object_info->equality_deletes_objects;
-    LOG_DEBUG(log, "Constructing filter transform for equality delete, there are {} delete files", delete_files.size());
+    if (!delete_files.empty())
+        LOG_DEBUG(log, "Constructing filter transform for equality delete, there are {} delete files", delete_files.size());
     for (const ManifestFileEntry & delete_file : delete_files)
     {
         auto simple_transform_adder = [&](const SharedHeader & header)
@@ -955,7 +957,7 @@ ColumnMapperPtr IcebergMetadata::getColumnMapperForObject(ObjectInfoPtr object_i
     if (!iceberg_object_info)
         return nullptr;
     auto configuration_ptr = configuration.lock();
-    if (Poco::toLower(configuration_ptr->format) != "parquet")
+    if (Poco::toLower(configuration_ptr->getFormat()) != "parquet")
         return nullptr;
 
     return persistent_components.schema_processor->getColumnMapperById(iceberg_object_info->underlying_format_read_schema_id);
@@ -964,11 +966,12 @@ ColumnMapperPtr IcebergMetadata::getColumnMapperForObject(ObjectInfoPtr object_i
 ColumnMapperPtr IcebergMetadata::getColumnMapperForCurrentSchema() const
 {
     auto configuration_ptr = configuration.lock();
-    if (Poco::toLower(configuration_ptr->format) != "parquet")
+    if (Poco::toLower(configuration_ptr->getFormat()) != "parquet")
         return nullptr;
     SharedLockGuard lock(mutex);
     return persistent_components.schema_processor->getColumnMapperById(relevant_snapshot_schema_id);
 }
+
 }
 
 #endif

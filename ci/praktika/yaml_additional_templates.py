@@ -35,7 +35,7 @@ class AltinityWorkflowTemplates:
           echo "Workflow Run Report: [View Report]($REPORT_LINK)" >> $GITHUB_STEP_SUMMARY
 """
     # Additional jobs
-    REGRESSION_HASH = "4a3f046ac47b1f1286c82d734251541711314645"
+    REGRESSION_HASH = "3fbe58a0ebe8fa5f97b7f36c45a2a69b1d3b6568"
     ALTINITY_JOBS = {
         "GrypeScan": r"""
   GrypeScanServer:
@@ -62,8 +62,8 @@ class AltinityWorkflowTemplates:
 """,
         "Regression": r"""
   RegressionTestsRelease:
-    needs: [config_workflow, build_amd_release]
-    if: ${{ !failure() && !cancelled() && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_regression')}}
+    needs: [config_workflow, build_amd_binary]
+    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).custom_data.ci_exclude_tags, 'regression')}}
     uses: ./.github/workflows/regression.yml
     secrets: inherit
     with:
@@ -74,8 +74,8 @@ class AltinityWorkflowTemplates:
       timeout_minutes: 300
       workflow_config: ${{ needs.config_workflow.outputs.data }}
   RegressionTestsAarch64:
-    needs: [config_workflow, build_arm_release]
-    if: ${{ !failure() && !cancelled() && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_regression') && !contains(github.event.pull_request.body, '[x] <!---ci_exclude_aarch64')}}
+    needs: [config_workflow, build_arm_binary]
+    if: ${{ !failure() && !cancelled() && !contains(fromJson(needs.config_workflow.outputs.data).custom_data.ci_exclude_tags, 'regression') && !contains(fromJson(needs.config_workflow.outputs.data).custom_data.ci_exclude_tags, 'aarch64')}}
     uses: ./.github/workflows/regression.yml
     secrets: inherit
     with:
