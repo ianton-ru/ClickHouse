@@ -55,7 +55,7 @@ workflow = Workflow.Config(
     enable_cidb=True,
     enable_commit_status_on_failure=True,
     pre_hooks=[
-        # "python3 ./ci/jobs/scripts/workflow_hooks/store_data.py",
+        "python3 ./ci/jobs/scripts/workflow_hooks/store_data.py",
         "python3 ./ci/jobs/scripts/workflow_hooks/version_log.py",
     ],
     workflow_filter_hooks=[should_skip_job],
