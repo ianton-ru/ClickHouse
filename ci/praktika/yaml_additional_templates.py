@@ -142,6 +142,12 @@ class AltinityWorkflowTemplates:
           submodules: true
           fetch-depth: 0
           filter: tree:0
+      - name: Install aws cli
+        if: ${{ env.NEEDS_BINARY_PROCESSING == 'true' }}
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+          arch: arm64
       - name: Create source tar
         run: |
           cd .. && tar czf $RUNNER_TEMP/build_source.src.tar.gz ClickHouse/
