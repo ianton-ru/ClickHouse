@@ -143,7 +143,6 @@ class AltinityWorkflowTemplates:
           fetch-depth: 0
           filter: tree:0
       - name: Install aws cli
-        if: ${{ env.NEEDS_BINARY_PROCESSING == 'true' }}
         uses: unfor19/install-aws-cli-action@v1
         with:
           version: 2
