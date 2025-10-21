@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Tags: no-fasttest
+# Tag no-fasttest: requires s3 storage
+
 
 # Tags: no-fasttest
 
