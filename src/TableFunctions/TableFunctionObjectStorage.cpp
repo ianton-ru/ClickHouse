@@ -296,6 +296,7 @@ template class TableFunctionObjectStorage<HDFSClusterDefinition, StorageHDFSConf
 
 #if USE_AVRO
 template class TableFunctionObjectStorage<IcebergClusterDefinition, StorageIcebergConfiguration, true>;
+template class TableFunctionObjectStorage<IcebergLocalClusterDefinition, StorageLocalIcebergConfiguration, true>;
 #endif
 
 #if USE_AVRO && USE_AWS_S3
@@ -334,13 +335,4 @@ void registerTableFunctionIceberg(TableFunctionFactory & factory)
          .allow_readonly = false});
 }
 #endif
-
-
-void registerDataLakeTableFunctions(TableFunctionFactory & factory)
-{
-    UNUSED(factory);
-#if USE_AVRO
-    registerTableFunctionIceberg(factory);
-#endif
-}
 }
