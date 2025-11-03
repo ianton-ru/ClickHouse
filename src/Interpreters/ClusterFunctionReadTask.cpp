@@ -30,8 +30,9 @@ ClusterFunctionReadTaskResponse::ClusterFunctionReadTaskResponse(ObjectInfoPtr o
     if (object->data_lake_metadata.has_value())
         data_lake_metadata = object->data_lake_metadata.value();
 
-    if (context->getSettingsRef()[Setting::allow_experimental_iceberg_read_optimization])
-        file_meta_info = object->file_meta_info;
+    file_meta_info = object->file_meta_info;
+
+    iceberg_read_optimization_enabled = context->getSettingsRef()[Setting::allow_experimental_iceberg_read_optimization];
 
     const bool send_over_whole_archive = !context->getSettingsRef()[Setting::cluster_function_process_archive_on_multiple_nodes];
     path = send_over_whole_archive ? object->getPathOrPathToArchiveIfArchive() : object->getPath();
@@ -69,7 +70,8 @@ void ClusterFunctionReadTaskResponse::serialize(WriteBuffer & out, size_t protoc
 
     if (protocol_version >= DBMS_CLUSTER_PROCESSING_PROTOCOL_VERSION_WITH_DATA_LAKE_COLUMNS_METADATA)
     {
-        if (file_meta_info.has_value())
+        /// This info is not used when optimization is disabled, so there is no need to send it.
+        if (iceberg_read_optimization_enabled && file_meta_info.has_value())
             file_meta_info.value()->serialize(out);
         else
             DataFileMetaInfo().serialize(out);
