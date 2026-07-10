@@ -23,12 +23,19 @@
 #include <Poco/JSON/Object.h>
 #include <Poco/JSON/Parser.h>
 #include <Core/Defines.h>
+#include <Common/ElapsedTimeProfileEventIncrement.h>
 #include <IO/ReadBuffer.h>
 #include <base/arithmeticOverflow.h>
 #include <base/types.h>
 #include <Processors/Formats/Impl/PuffinBlockInputFormat.h>
 #include <Storages/ObjectStorage/DataLakes/PuffinDeletionVectorReader.h>
 #include <IO/ReadBufferFromMemory.h>
+
+namespace ProfileEvents
+{
+extern const Event PuffinFilesRead;
+extern const Event PuffinFileReadMicroseconds;
+}
 
 namespace DB
 {
@@ -43,6 +50,17 @@ namespace ErrorCodes
 
 namespace
 {
+
+struct ScopedPuffinFileReadProfileEvent
+{
+    ProfileEventTimeIncrement<Microseconds> watch;
+
+    ScopedPuffinFileReadProfileEvent()
+        : watch(ProfileEvents::PuffinFileReadMicroseconds)
+    {
+        ProfileEvents::increment(ProfileEvents::PuffinFilesRead);
+    }
+};
 
 constexpr UInt8 PUFFIN_MAGIC[4] = {0x50, 0x46, 0x41, 0x31};
 constexpr UInt8 PUFFIN_FOOTER_COMPRESSED_FLAG = 0x01;
@@ -250,6 +268,8 @@ std::vector<PuffinBlob> readPuffinFooterFromSeekable(SeekableReadBuffer & seekab
 
 PuffinFooter readPuffinFooter(ReadBuffer & buf)
 {
+    ScopedPuffinFileReadProfileEvent profile_event;
+
     PuffinFooter result;
 
     auto * seekable = dynamic_cast<SeekableReadBuffer *>(&buf);
