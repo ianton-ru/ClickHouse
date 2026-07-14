@@ -24,6 +24,7 @@
 #include <Poco/JSON/Parser.h>
 #include <Core/Defines.h>
 #include <Common/ElapsedTimeProfileEventIncrement.h>
+#include <fmt/format.h>
 #include <IO/ReadBuffer.h>
 #include <base/arithmeticOverflow.h>
 #include <base/types.h>
@@ -70,22 +71,6 @@ void checkMagic(const UInt8 * p, const char * context)
 {
     if (std::memcmp(p, PUFFIN_MAGIC, 4) != 0)
         throw Exception(ErrorCodes::BAD_ARGUMENTS, "Invalid Puffin magic ({})", context);
-}
-
-void validatePuffinBlobBounds(Int64 offset, Int64 length, size_t data_size, size_t blob_index)
-{
-    if (offset < 0 || length < 0)
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin blob {}: offset/length out of bounds", blob_index);
-
-    if (offset > static_cast<Int64>(data_size) || length > static_cast<Int64>(data_size))
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin blob {}: offset/length out of bounds", blob_index);
-
-    Int64 end = 0;
-    if (common::addOverflow(offset, length, end))
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin blob {}: offset/length out of bounds", blob_index);
-
-    if (static_cast<UInt64>(end) > data_size)
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin blob {}: offset/length out of bounds", blob_index);
 }
 
 void validatePuffinFooterFlags(const UInt8 flags[4])
@@ -206,7 +191,7 @@ std::vector<PuffinBlob> parseFooterJSON(const String & footer_json, size_t data_
                 blob.fields.push_back(fields_arr->getElement<Int32>(static_cast<unsigned>(j)));
         }
 
-        validatePuffinBlobBounds(blob.offset, blob.length, data_size, i);
+        validatePuffinBlobBounds(blob.offset, blob.length, data_size, fmt::format("Puffin blob {}", i));
 
         blobs.push_back(std::move(blob));
     }
