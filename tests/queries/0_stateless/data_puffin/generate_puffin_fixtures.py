@@ -224,6 +224,20 @@ def generate_missing_required_fields() -> None:
     )
 
 
+def generate_cardinality_mismatch_large_bitmap() -> None:
+    bitmap = pyroaring.BitMap([2, 5, 7, 100, 65536])
+    vector = struct.pack("<qi", 1, 0) + bitmap.serialize()
+    blob = wrap_deletion_vector_blob(vector)
+    properties = {
+        "referenced-data-file": DEFAULT_REFERENCED_DATA_FILE,
+        "cardinality": "1",
+    }
+    write_fixture(
+        "cardinality_mismatch_large_bitmap.puffin",
+        build_puffin_file(blob, footer_json_for_blob(blob, properties)),
+    )
+
+
 def generate_sparse_large_key() -> None:
     bitmap = pyroaring.BitMap()
     bitmap.add(SPARSE_SUB_POSITION)
@@ -277,6 +291,54 @@ def generate_mixed_blob_types() -> None:
     )
 
 
+def generate_invalid_non_dv_properties() -> None:
+    theta_blob = b"\x00" * 16
+    bitmap = pyroaring.BitMap([2, 5])
+    vector = struct.pack("<qi", 1, 0) + bitmap.serialize()
+    deletion_vector_blob = wrap_deletion_vector_blob(vector)
+    theta_offset = len(PUFFIN_MAGIC)
+    deletion_vector_offset = theta_offset + len(theta_blob)
+    footer_template = {
+        "blobs": [
+            {
+                "type": "apache-datasketches-theta-v1",
+                "fields": [1],
+                "snapshot-id": -1,
+                "sequence-number": -1,
+                "offset": theta_offset,
+                "length": len(theta_blob),
+                "properties": {},
+            },
+            {
+                "type": "deletion-vector-v1",
+                "fields": [],
+                "snapshot-id": -1,
+                "sequence-number": -1,
+                "offset": deletion_vector_offset,
+                "length": len(deletion_vector_blob),
+                "properties": {
+                    "referenced-data-file": DEFAULT_REFERENCED_DATA_FILE,
+                    "cardinality": "2",
+                },
+            },
+        ]
+    }
+    non_dv_property_cases = {
+        "invalid_non_dv_properties_array.puffin": [],
+        "invalid_non_dv_properties_string.puffin": "not-an-object",
+    }
+    for name, properties in non_dv_property_cases.items():
+        case_payload = json.loads(json.dumps(footer_template))
+        case_payload["blobs"][0]["properties"] = properties
+        write_fixture(
+            name,
+            build_puffin_file_from_blobs(
+                [theta_blob, deletion_vector_blob],
+                json.dumps(case_payload, separators=(", ", ": ")).encode("utf-8"),
+            ),
+        )
+
+
 def main() -> None:
     spark_fixture = OUTPUT_DIR / "spark_deletion_vector.puffin"
     if not spark_fixture.exists():
@@ -289,6 +351,8 @@ def main() -> None:
     generate_inflated_lz4_content_size(spark_fixture)
     generate_missing_required_fields()
     generate_mixed_blob_types()
+    generate_invalid_non_dv_properties()
+    generate_cardinality_mismatch_large_bitmap()
     generate_sparse_large_key()
 
 
