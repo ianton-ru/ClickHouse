@@ -300,7 +300,7 @@ IcebergIterator::IcebergIterator(
     std::sort(equality_deletes_files.begin(), equality_deletes_files.end());
     std::sort(deletion_vector_files.begin(), deletion_vector_files.end());
     std::sort(parquet_position_deletes_files.begin(), parquet_position_deletes_files.end());
-    producer_task.emplace(
+    producer_task = std::make_unique<ThreadFromGlobalPool>(
         [this, thread_group = CurrentThread::getGroup()]()
         {
             DB::ThreadGroupSwitcher switcher(thread_group, DB::ThreadName::ICEBERG_ITERATOR);
