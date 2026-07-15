@@ -32,6 +32,14 @@ INVALID_KEY = 0x7FFFFFFF
 LARGE_KEY = 1_000_000
 SPARSE_SUB_POSITION = 42
 BLOB_PLACEHOLDER = b"\x00" * 58
+DEFAULT_REFERENCED_DATA_FILE = "/data/table/part-00000.parquet"
+
+
+def default_dv_properties(cardinality: str = "0") -> dict[str, str]:
+    return {
+        "referenced-data-file": DEFAULT_REFERENCED_DATA_FILE,
+        "cardinality": cardinality,
+    }
 
 
 def wrap_deletion_vector_blob(vector: bytes) -> bytes:
@@ -51,7 +59,7 @@ def footer_json_for_blob(blob: bytes, properties: dict[str, str] | None = None) 
                 "sequence-number": 1,
                 "offset": 4,
                 "length": len(blob),
-                "properties": properties or {},
+                "properties": properties if properties is not None else default_dv_properties(),
             }
         ]
     }
@@ -59,6 +67,10 @@ def footer_json_for_blob(blob: bytes, properties: dict[str, str] | None = None) 
 
 
 def build_puffin_file(blob: bytes, footer_json: bytes, *, compressed: bool = False) -> bytes:
+    return build_puffin_file_from_blobs([blob], footer_json, compressed=compressed)
+
+
+def build_puffin_file_from_blobs(blobs: list[bytes], footer_json: bytes, *, compressed: bool = False) -> bytes:
     if compressed:
         footer_payload = lz4.frame.compress(footer_json)
         flags = bytes([0x01, 0x00, 0x00, 0x00])
@@ -67,7 +79,7 @@ def build_puffin_file(blob: bytes, footer_json: bytes, *, compressed: bool = Fal
         flags = b"\x00\x00\x00\x00"
 
     footer_length = struct.pack("<i", len(footer_payload))
-    return PUFFIN_MAGIC + blob + PUFFIN_MAGIC + footer_payload + footer_length + flags + PUFFIN_MAGIC
+    return PUFFIN_MAGIC + b"".join(blobs) + PUFFIN_MAGIC + footer_payload + footer_length + flags + PUFFIN_MAGIC
 
 
 def extract_blob_and_footer_json(puffin: bytes) -> tuple[bytes, bytes]:
@@ -143,6 +155,75 @@ def generate_inflated_lz4_content_size(source: Path) -> None:
     )
 
 
+def generate_missing_required_fields() -> None:
+    footer_json = footer_json_for_blob(BLOB_PLACEHOLDER)
+    payload = json.loads(footer_json.decode("utf-8"))
+    blob_field_cases = {
+        "missing_snapshot_id.puffin": "snapshot-id",
+        "missing_sequence_number.puffin": "sequence-number",
+        "missing_fields.puffin": "fields",
+        "missing_type.puffin": "type",
+        "missing_offset.puffin": "offset",
+        "missing_length.puffin": "length",
+    }
+    for name, field in blob_field_cases.items():
+        case_payload = json.loads(json.dumps(payload))
+        del case_payload["blobs"][0][field]
+        write_fixture(
+            name,
+            build_puffin_file(
+                BLOB_PLACEHOLDER,
+                json.dumps(case_payload, separators=(", ", ": ")).encode("utf-8"),
+            ),
+        )
+
+    footer_field_cases = {
+        "missing_blobs.puffin": {},
+        "null_blobs.puffin": {"blobs": None},
+        "null_blob_entry.puffin": {"blobs": [None]},
+        "invalid_blob_entry.puffin": {"blobs": ["not-an-object"]},
+    }
+    for name, footer_payload in footer_field_cases.items():
+        write_fixture(
+            name,
+            build_puffin_file(
+                BLOB_PLACEHOLDER,
+                json.dumps(footer_payload, separators=(", ", ": ")).encode("utf-8"),
+            ),
+        )
+
+    dv_property_cases = {
+        "missing_properties.puffin": None,
+        "missing_referenced_data_file.puffin": {"cardinality": "0"},
+        "missing_cardinality.puffin": {"referenced-data-file": DEFAULT_REFERENCED_DATA_FILE},
+        "invalid_properties_array.puffin": [],
+        "invalid_properties_string.puffin": "not-an-object",
+    }
+    for name, properties in dv_property_cases.items():
+        case_payload = json.loads(footer_json.decode("utf-8"))
+        if properties is None:
+            del case_payload["blobs"][0]["properties"]
+        else:
+            case_payload["blobs"][0]["properties"] = properties
+        write_fixture(
+            name,
+            build_puffin_file(
+                BLOB_PLACEHOLDER,
+                json.dumps(case_payload, separators=(", ", ": ")).encode("utf-8"),
+            ),
+        )
+
+    case_payload = json.loads(footer_json.decode("utf-8"))
+    case_payload["blobs"][0]["compression-codec"] = "lz4"
+    write_fixture(
+        "dv_with_compression_codec.puffin",
+        build_puffin_file(
+            BLOB_PLACEHOLDER,
+            json.dumps(case_payload, separators=(", ", ": ")).encode("utf-8"),
+        ),
+    )
+
+
 def generate_sparse_large_key() -> None:
     bitmap = pyroaring.BitMap()
     bitmap.add(SPARSE_SUB_POSITION)
@@ -155,6 +236,47 @@ def generate_sparse_large_key() -> None:
     write_fixture("sparse_large_key.puffin", build_puffin_file(blob, footer_json_for_blob(blob, properties)))
 
 
+def generate_mixed_blob_types() -> None:
+    theta_blob = b"\x00" * 16
+    bitmap = pyroaring.BitMap([2, 5])
+    vector = struct.pack("<qi", 1, 0) + bitmap.serialize()
+    deletion_vector_blob = wrap_deletion_vector_blob(vector)
+    theta_offset = len(PUFFIN_MAGIC)
+    deletion_vector_offset = theta_offset + len(theta_blob)
+    footer_json = json.dumps(
+        {
+            "blobs": [
+                {
+                    "type": "apache-datasketches-theta-v1",
+                    "fields": [1],
+                    "snapshot-id": -1,
+                    "sequence-number": -1,
+                    "offset": theta_offset,
+                    "length": len(theta_blob),
+                    "properties": {},
+                },
+                {
+                    "type": "deletion-vector-v1",
+                    "fields": [],
+                    "snapshot-id": -1,
+                    "sequence-number": -1,
+                    "offset": deletion_vector_offset,
+                    "length": len(deletion_vector_blob),
+                    "properties": {
+                        "referenced-data-file": DEFAULT_REFERENCED_DATA_FILE,
+                        "cardinality": "2",
+                    },
+                },
+            ]
+        },
+        separators=(", ", ": "),
+    ).encode("utf-8")
+    write_fixture(
+        "mixed_blob_types.puffin",
+        build_puffin_file_from_blobs([theta_blob, deletion_vector_blob], footer_json),
+    )
+
+
 def main() -> None:
     spark_fixture = OUTPUT_DIR / "spark_deletion_vector.puffin"
     if not spark_fixture.exists():
@@ -165,6 +287,8 @@ def main() -> None:
     generate_invalid_roaring_bitmap()
     generate_invalid_bitmap_key()
     generate_inflated_lz4_content_size(spark_fixture)
+    generate_missing_required_fields()
+    generate_mixed_blob_types()
     generate_sparse_large_key()
 
 

@@ -10,3 +10,43 @@ Failed to deserialize deletion vector roaring bitmap
 Invalid deletion vector bitmap key
 --- inflated_lz4_content_size.puffin ---
 Puffin footer LZ4 content size
+--- missing_snapshot_id.puffin ---
+missing required field
+--- missing_sequence_number.puffin ---
+missing required field
+--- missing_fields.puffin ---
+missing required field
+--- missing_type.puffin ---
+missing required field
+--- missing_offset.puffin ---
+missing required field
+--- missing_length.puffin ---
+missing required field
+--- missing_blobs.puffin ---
+missing required field 'blobs'
+--- null_blobs.puffin ---
+missing required field 'blobs'
+--- null_blob_entry.puffin ---
+must be an object
+--- invalid_blob_entry.puffin ---
+must be an object
+--- missing_properties.puffin ---
+missing required field
+--- missing_referenced_data_file.puffin ---
+missing required property
+--- missing_cardinality.puffin ---
+missing required property
+--- invalid_properties_array.puffin ---
+field 'properties' must be an object
+--- invalid_properties_string.puffin ---
+field 'properties' must be an object
+--- dv_with_compression_codec.puffin ---
+must omit 'compression-codec'
+--- puffin_wrong_type ---
+Unexpected type
+--- puffin_unknown_column ---
+Unexpected column
+--- puffin_metadata_wrong_type ---
+Unexpected type
+--- puffin_metadata_unknown_column ---
+Unexpected column

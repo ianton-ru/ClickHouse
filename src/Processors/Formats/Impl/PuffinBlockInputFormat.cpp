@@ -162,34 +162,98 @@ String decompressPuffinFooterPayload(const char * data, size_t size)
     return result;
 }
 
+void requireBlobMetadataField(const Poco::JSON::Object::Ptr & blob_obj, const char * field_name, size_t blob_index)
+{
+    if (!blob_obj->has(field_name) || blob_obj->isNull(field_name))
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin blob {}: missing required field '{}'", blob_index, field_name);
+}
+
+void requireDeletionVectorV1Properties(const PuffinBlob & blob, size_t blob_index)
+{
+    static constexpr const char * required_properties[] = {"referenced-data-file", "cardinality"};
+    for (const char * key : required_properties)
+    {
+        auto it = blob.properties.find(key);
+        if (it == blob.properties.end() || it->second.empty())
+            throw Exception(
+                ErrorCodes::BAD_ARGUMENTS,
+                "Puffin blob {}: deletion-vector-v1 missing required property '{}'",
+                blob_index,
+                key);
+    }
+}
+
 std::vector<PuffinBlob> parseFooterJSON(const String & footer_json, size_t data_size)
 {
     Poco::JSON::Parser parser;
     auto root = parser.parse(footer_json);
     const auto & obj = root.extract<Poco::JSON::Object::Ptr>();
+
+    if (!obj->has("blobs") || obj->isNull("blobs"))
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin footer is missing required field 'blobs'");
+
     auto blobs_arr = obj->getArray("blobs");
+    if (!blobs_arr)
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin footer field 'blobs' must be an array");
 
     std::vector<PuffinBlob> blobs;
     for (size_t i = 0; i < blobs_arr->size(); ++i)
     {
         auto blob_obj = blobs_arr->getObject(static_cast<unsigned>(i));
+        if (!blob_obj)
+            throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin blob {}: must be an object", i);
+
         PuffinBlob blob;
+
+        requireBlobMetadataField(blob_obj, "type", i);
         blob.type = blob_obj->getValue<String>("type");
-        blob.snapshot_id = blob_obj->optValue<Int64>("snapshot-id", 0);
-        blob.sequence_number = blob_obj->optValue<Int64>("sequence-number", 0);
+
+        requireBlobMetadataField(blob_obj, "snapshot-id", i);
+        blob.snapshot_id = blob_obj->getValue<Int64>("snapshot-id");
+
+        requireBlobMetadataField(blob_obj, "sequence-number", i);
+        blob.sequence_number = blob_obj->getValue<Int64>("sequence-number");
+
+        requireBlobMetadataField(blob_obj, "offset", i);
         blob.offset = blob_obj->getValue<Int64>("offset");
+
+        requireBlobMetadataField(blob_obj, "length", i);
         blob.length = blob_obj->getValue<Int64>("length");
         blob.compression_codec = blob_obj->optValue<String>("compression-codec", "");
 
-        if (auto props_obj = blob_obj->getObject("properties"))
+        if (blob.type == "deletion-vector-v1")
+        {
+            if (blob_obj->has("compression-codec") && !blob_obj->isNull("compression-codec"))
+                throw Exception(
+                    ErrorCodes::BAD_ARGUMENTS,
+                    "Puffin blob {}: deletion-vector-v1 must omit 'compression-codec'",
+                    i);
+
+            requireBlobMetadataField(blob_obj, "properties", i);
+
+            auto props_obj = blob_obj->getObject("properties");
+            if (!props_obj)
+                throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin blob {}: field 'properties' must be an object", i);
+
             for (const auto & [key, val] : *props_obj)
                 blob.properties.emplace(key, val.extract<String>());
-
-        if (auto fields_arr = blob_obj->getArray("fields"))
-        {
-            for (size_t j = 0; j < fields_arr->size(); ++j)
-                blob.fields.push_back(fields_arr->getElement<Int32>(static_cast<unsigned>(j)));
         }
+        else if (auto props_obj = blob_obj->getObject("properties"))
+        {
+            for (const auto & [key, val] : *props_obj)
+                blob.properties.emplace(key, val.extract<String>());
+        }
+
+        if (blob.type == "deletion-vector-v1")
+            requireDeletionVectorV1Properties(blob, i);
+
+        requireBlobMetadataField(blob_obj, "fields", i);
+        auto fields_arr = blob_obj->getArray("fields");
+        if (!fields_arr)
+            throw Exception(ErrorCodes::BAD_ARGUMENTS, "Puffin blob {}: field 'fields' must be an array", i);
+
+        for (size_t j = 0; j < fields_arr->size(); ++j)
+            blob.fields.push_back(fields_arr->getElement<Int32>(static_cast<unsigned>(j)));
 
         validatePuffinBlobBounds(blob.offset, blob.length, data_size, fmt::format("Puffin blob {}", i));
 
@@ -317,11 +381,57 @@ NamesAndTypesList getPuffinSchema()
     };
 }
 
+void checkPuffinFormatHeader(const Block & header, const NamesAndTypesList & expected_schema, const char * format_name)
+{
+    std::unordered_map<String, DataTypePtr> name_to_type;
+    for (const auto & [name, type] : expected_schema)
+        name_to_type[name] = type;
+
+    String allowed_columns;
+    for (const auto & [name, type] : expected_schema)
+    {
+        if (!allowed_columns.empty())
+            allowed_columns += ", ";
+        allowed_columns += name;
+    }
+
+    for (const auto & [name, type] : header.getNamesAndTypes())
+    {
+        auto it = name_to_type.find(name);
+        if (it == name_to_type.end())
+            throw Exception(
+                ErrorCodes::BAD_ARGUMENTS,
+                "Unexpected column: {}. {} format allows only the next columns: {}",
+                name,
+                format_name,
+                allowed_columns);
+
+        if (!it->second->equals(*type))
+            throw Exception(
+                ErrorCodes::BAD_ARGUMENTS,
+                "Unexpected type {} for column {}. Expected type: {}",
+                type->getName(),
+                name,
+                it->second->getName());
+    }
+}
+
+void checkPuffinMetadataHeader(const Block & header)
+{
+    checkPuffinFormatHeader(header, getPuffinMetadataSchema(), "PuffinMetadata");
+}
+
+void checkPuffinHeader(const Block & header)
+{
+    checkPuffinFormatHeader(header, getPuffinSchema(), "Puffin");
+}
+
 }
 
 PuffinMetadataInputFormat::PuffinMetadataInputFormat(ReadBuffer & buf, SharedHeader header_)
     : IInputFormat(std::move(header_), &buf)
 {
+    checkPuffinMetadataHeader(getPort().getHeader());
 }
 
 Chunk PuffinMetadataInputFormat::read()
@@ -394,6 +504,7 @@ Chunk PuffinMetadataInputFormat::read()
 PuffinInputFormat::PuffinInputFormat(ReadBuffer & buf, SharedHeader header_)
     : IInputFormat(std::move(header_), &buf)
 {
+    checkPuffinHeader(getPort().getHeader());
 }
 
 Chunk PuffinInputFormat::read()
@@ -404,46 +515,48 @@ Chunk PuffinInputFormat::read()
         initialized = true;
         footer = readPuffinFooter(*in);
     }
-    size_t n = footer.blobs.size();
-    if (n == 0 || n <= blob_index)
-        return {};
 
-    auto col_rows_data = ColumnUInt64::create();
-    auto col_rows_offsets = ColumnArray::ColumnOffsets::create();
-
-    ColumnArray::Offset rows_offset = 0;
-    const auto & blob = footer.blobs[blob_index++];
-
-    if (blob.type != "deletion-vector-v1")
-        throw Exception(ErrorCodes::NOT_IMPLEMENTED, "ClickHouse supports only deletion vector blobs. Datasketches deletion vectors are not supported");
-
-    if (!blob.compression_codec.empty())
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "deletion-vector-v1 blobs must be uncompressed");
-
-    auto blob_buf = readBlobBytes(blob, *in, footer.data);
-    auto rows = readDeletionVectorFromPuffin(*blob_buf, blob.offset, blob.length);
-
-    if (auto cardinality_it = blob.properties.find("cardinality"); cardinality_it != blob.properties.end())
+    while (blob_index < footer.blobs.size())
     {
-        const UInt64 expected_cardinality = parse<UInt64>(cardinality_it->second);
-        if (expected_cardinality != rows.size())
-            throw Exception(ErrorCodes::BAD_ARGUMENTS, "Deletion vector cardinality {} does not match deserialized row count {}", expected_cardinality, rows.size());
+        const auto & blob = footer.blobs[blob_index++];
+
+        if (blob.type != "deletion-vector-v1")
+            continue;
+
+        if (!blob.compression_codec.empty())
+            throw Exception(ErrorCodes::BAD_ARGUMENTS, "deletion-vector-v1 blobs must be uncompressed");
+
+        auto col_rows_data = ColumnUInt64::create();
+        auto col_rows_offsets = ColumnArray::ColumnOffsets::create();
+
+        auto blob_buf = readBlobBytes(blob, *in, footer.data);
+        auto rows = readDeletionVectorFromPuffin(*blob_buf, blob.offset, blob.length);
+
+        if (auto cardinality_it = blob.properties.find("cardinality"); cardinality_it != blob.properties.end())
+        {
+            const UInt64 expected_cardinality = parse<UInt64>(cardinality_it->second);
+            if (expected_cardinality != rows.size())
+                throw Exception(ErrorCodes::BAD_ARGUMENTS, "Deletion vector cardinality {} does not match deserialized row count {}", expected_cardinality, rows.size());
+        }
+
+        ColumnArray::Offset rows_offset = 0;
+        size_t elem_count = 0;
+        for (UInt64 r : rows)
+        {
+            ++elem_count;
+            col_rows_data->insertValue(r);
+        }
+        rows_offset += elem_count;
+        col_rows_offsets->insertValue(rows_offset);
+
+        auto col_rows = ColumnArray::create(std::move(col_rows_data), std::move(col_rows_offsets));
+
+        MutableColumns cols;
+        cols.push_back(std::move(col_rows));
+        return Chunk(std::move(cols), 1);
     }
 
-    size_t elem_count = 0;
-    for (UInt64 r : rows)
-    {
-        ++elem_count;
-        col_rows_data->insertValue(r);
-    }
-    rows_offset += elem_count;
-    col_rows_offsets->insertValue(rows_offset);
-
-    auto col_rows = ColumnArray::create(std::move(col_rows_data), std::move(col_rows_offsets));
-
-    MutableColumns cols;
-    cols.push_back(std::move(col_rows));
-    return Chunk(std::move(cols), 1);
+    return {};
 }
 
 PuffinMetadataSchemaReader::PuffinMetadataSchemaReader(ReadBuffer & in_)
