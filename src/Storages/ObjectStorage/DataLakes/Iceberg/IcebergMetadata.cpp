@@ -405,6 +405,7 @@ IcebergDataSnapshotPtr IcebergMetadata::createIcebergDataSnapshotFromSnapshotJSO
     std::optional<size_t> total_rows;
     std::optional<size_t> total_bytes;
     std::optional<size_t> total_position_deletes;
+    std::optional<size_t> total_equality_deletes;
 
     if (snapshot_object->has(f_summary))
     {
@@ -419,6 +420,9 @@ IcebergDataSnapshotPtr IcebergMetadata::createIcebergDataSnapshotFromSnapshotJSO
         {
             total_position_deletes = summary_object->getValue<Int64>(f_total_position_deletes);
         }
+
+        if (summary_object->has(f_total_equality_deletes))
+            total_equality_deletes = summary_object->getValue<Int64>(f_total_equality_deletes);
     }
 
     if (!snapshot_object->has(f_schema_id))
@@ -432,7 +436,8 @@ IcebergDataSnapshotPtr IcebergMetadata::createIcebergDataSnapshotFromSnapshotJSO
         schema_id,
         total_rows,
         total_bytes,
-        total_position_deletes);
+        total_position_deletes,
+        total_equality_deletes);
 }
 
 IcebergDataSnapshotPtr
@@ -1113,6 +1118,10 @@ std::optional<size_t> IcebergMetadata::totalRows(ContextPtr local_context) const
         return 0;
     }
 
+    /// Equality deletes remove data rows by value match; summary `total-equality-deletes` counts
+    /// rows in delete files, not deleted data rows. Fail closed — do not shortcut COUNT.
+    if (actual_data_snapshot->total_equality_delete_rows.value_or(0) > 0)
+        return {};
 
     /// All these "hints" with total rows or bytes are optional both in
     /// metadata files and in manifest files, so we try all of them one by one
@@ -1127,6 +1136,9 @@ std::optional<size_t> IcebergMetadata::totalRows(ContextPtr local_context) const
     {
         auto manifest_file_ptr = getManifestFileEntriesHandle(
             object_storage, persistent_components, local_context, log, manifest_list_entry, actual_table_state_snapshot.schema_id);
+        if (!manifest_file_ptr.getFilesWithoutDeleted(FileContentType::EQUALITY_DELETE).empty())
+            return {};
+
         auto data_count = manifest_file_ptr.getRowsCountInAllFilesExcludingDeleted(FileContentType::DATA);
         auto position_deletes_count = manifest_file_ptr.getRowsCountInAllFilesExcludingDeleted(FileContentType::POSITION_DELETE);
         if (!data_count.has_value() || !position_deletes_count.has_value())
