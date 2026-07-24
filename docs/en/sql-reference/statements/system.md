@@ -43,6 +43,29 @@ The status of the dictionary can be checked by querying the `system.dictionaries
 SELECT name, status FROM system.dictionaries;
 ```
 
+## SYSTEM UNLOAD DICTIONARY {#unload-dictionary}
+
+Unloads a dictionary `dictionary_name` to release its memory, if the dictionary status is `LOADED`.
+The dictionary is lazy-reloaded when necessary again.
+
+```sql
+SYSTEM UNLOAD DICTIONARY dictionary_name
+```
+
+The status of the dictionary can be checked by querying the `system.dictionaries` table.
+
+```sql
+SELECT name, status FROM system.dictionaries;
+```
+
+## SYSTEM UNLOAD DICTIONARIES {#unload-dictionaries}
+
+The `SYSTEM UNLOAD DICTIONARIES` query unloads all dictionaries with a `LOADED` status (see the `status` column of [`system.dictionaries`](/operations/system-tables/dictionaries)), i.e dictionaries that have been successfully loaded before.
+
+```sql
+SYSTEM UNLOAD DICTIONARIES
+```
+
 ## SYSTEM RELOAD MODELS {#reload-models}
 
 :::note
@@ -117,6 +140,10 @@ Clears the parquet metadata cache.
 ## SYSTEM DROP PUFFIN_FILES_CACHE {#drop-puffin-files-cache}
 
 Clears the Puffin files cache used for parsed Iceberg puffin file content such as deletion vectors.
+
+## SYSTEM CLEAR|DROP PAIMON METADATA CACHE {#drop-paimon-metadata-cache}
+
+Clears the in-memory cache of parsed Paimon metadata files (manifest lists and manifests).
 
 ## SYSTEM CLEAR|DROP POINT IN POLYGON CACHE {#drop-point-in-polygon-cache}
 

@@ -158,6 +158,16 @@ ParsedManifestFileEntryPtr AvroForIcebergDeserializer::createParsedManifestFileE
         }
     }
 
+    /// `file_sequence_number` can differ from the data `sequence_number` and, like it, is inherited from the
+    /// manifest's sequence number when null. Keep it raw here; the inherited value is resolved by the caller.
+    std::optional<Int64> file_sequence_number;
+
+    if (format_version > 1 && hasPath(f_file_sequence_number))
+    {
+        const auto file_sequence_number_value = getValueFromRowByName(row_index, f_file_sequence_number);
+        if (!file_sequence_number_value.isNull())
+            file_sequence_number = file_sequence_number_value.safeGet<Int64>();
+    }
 
     const auto file_path_key = IcebergPathFromMetadata::deserialize(
         getValueFromRowByName(row_index, c_data_file_file_path, TypeIndex::String).safeGet<String>());
@@ -268,6 +278,7 @@ ParsedManifestFileEntryPtr AvroForIcebergDeserializer::createParsedManifestFileE
                 row_index,
                 status,
                 sequence_number,
+                file_sequence_number,
                 snapshot_id,
                 partition_key_value,
                 columns_infos,
@@ -334,6 +345,7 @@ ParsedManifestFileEntryPtr AvroForIcebergDeserializer::createParsedManifestFileE
                 row_index,
                 status,
                 sequence_number,
+                file_sequence_number,
                 snapshot_id,
                 partition_key_value,
                 columns_infos,
@@ -367,6 +379,7 @@ ParsedManifestFileEntryPtr AvroForIcebergDeserializer::createParsedManifestFileE
                 row_index,
                 status,
                 sequence_number,
+                file_sequence_number,
                 snapshot_id,
                 partition_key_value,
                 columns_infos,

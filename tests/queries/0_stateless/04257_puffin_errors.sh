@@ -1,96 +1,97 @@
 #!/usr/bin/env bash
 # Tags: no-fasttest
+#
+# Deletion-vector / Puffin payload error cases. Split from the former monolithic
+# 04257 suite so slow CI builds stay under the 300s timeout. Cases still run in
+# a small parallel pool because clickhouse-local startup dominates runtime.
 
 CURDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../shell_config.sh
 . "$CURDIR"/../shell_config.sh
+# shellcheck source=./data_puffin/puffin_errors_common.sh
+. "$CURDIR"/data_puffin/puffin_errors_common.sh
 
-DATA="$CURDIR/data_puffin"
-PUFFIN="$DATA/spark_deletion_vector.puffin"
-
-for PUFFIN_FILE in \
-    "$DATA/overflow_offset_length.puffin" \
-    "$DATA/negative_offset.puffin" \
-    "$DATA/length_exceeds_file.puffin"
+for f in overflow_offset_length negative_offset length_exceeds_file blob_overlaps_footer
 do
-    echo "--- $(basename "$PUFFIN_FILE") ---"
-    $CLICKHOUSE_LOCAL -q "SELECT deleted_rows FROM file('$PUFFIN_FILE', Puffin)" 2>&1 | grep -oF 'Puffin blob 0: offset/length out of bounds'
+    launch "$id" puffin "$DATA/$f.puffin" 'Puffin blob 0: offset/length out of bounds'
+    id=$((id + 1))
 done
 
-echo "--- invalid_roaring_bitmap.puffin ---"
-$CLICKHOUSE_LOCAL -q "SELECT deleted_rows FROM file('$DATA/invalid_roaring_bitmap.puffin', Puffin)" 2>&1 | grep -oF 'Failed to deserialize deletion vector roaring bitmap'
+launch "$id" puffin "$DATA/invalid_roaring_bitmap.puffin" 'Failed to deserialize deletion vector roaring bitmap' 'BAD_ARGUMENTS'
+id=$((id + 1))
+launch "$id" puffin "$DATA/invalid_bitmap_key.puffin" 'Invalid deletion vector bitmap key'
+id=$((id + 1))
+launch "$id" puffin "$DATA/dv_envelope_length_mismatch.puffin" 'does not match combined length'
+id=$((id + 1))
+launch "$id" puffin "$DATA/dv_envelope_bad_magic.puffin" 'Invalid deletion vector magic'
+id=$((id + 1))
+launch "$id" puffin "$DATA/dv_envelope_crc_mismatch.puffin" 'Deletion vector CRC mismatch'
+id=$((id + 1))
+launch "$id" puffin "$DATA/cardinality_mismatch_large_bitmap.puffin" 'exceeds declared cardinality'
+id=$((id + 1))
+launch "$id" puffin "$DATA/cardinality_exceeds_materialization_limit.puffin" 'exceeds materialization limit' 'BAD_ARGUMENTS'
+id=$((id + 1))
 
-echo "--- invalid_bitmap_key.puffin ---"
-$CLICKHOUSE_LOCAL -q "SELECT deleted_rows FROM file('$DATA/invalid_bitmap_key.puffin', Puffin)" 2>&1 | grep -oF 'Invalid deletion vector bitmap key'
+# Oversized DV blob region is generated at runtime (sparse) to avoid committing a 2 GiB fixture.
+OVERSIZE_DV_BLOB="$TMP/oversized_dv_blob.puffin"
+python3 - "$OVERSIZE_DV_BLOB" <<'PY'
+import json
+import struct
+import sys
 
-echo "--- cardinality_mismatch_large_bitmap.puffin ---"
-$CLICKHOUSE_LOCAL -q "SELECT deleted_rows FROM file('$DATA/cardinality_mismatch_large_bitmap.puffin', Puffin)" 2>&1 | grep -oF 'exceeds declared cardinality'
+path = sys.argv[1]
+magic = b"PFA1"
+blob_length = 2 * 1024 * 1024 * 1024 + 1
+footer = {
+    "blobs": [
+        {
+            "type": "deletion-vector-v1",
+            "fields": [],
+            "snapshot-id": -1,
+            "sequence-number": -1,
+            "offset": 4,
+            "length": blob_length,
+            "properties": {
+                "referenced-data-file": "/data/table/part-00000.parquet",
+                "cardinality": "1",
+            },
+        }
+    ]
+}
+footer_json = json.dumps(footer, separators=(", ", ": ")).encode("utf-8")
+flags = b"\x00\x00\x00\x00"
+with open(path, "wb") as f:
+    f.write(magic)
+    f.seek(4 + blob_length - 1, 0)
+    f.write(b"\x00")
+    f.write(magic)
+    f.write(footer_json)
+    f.write(struct.pack("<i", len(footer_json)))
+    f.write(flags)
+    f.write(magic)
+PY
+launch "$id" puffin "$OVERSIZE_DV_BLOB" 'exceeds absolute limit'
+id=$((id + 1))
 
-echo "--- inflated_lz4_content_size.puffin ---"
-$CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$DATA/inflated_lz4_content_size.puffin', PuffinMetadata)" 2>&1 | grep -oF 'Puffin footer LZ4 content size'
-
-for PUFFIN_FILE in \
-    "$DATA/missing_snapshot_id.puffin" \
-    "$DATA/missing_sequence_number.puffin" \
-    "$DATA/missing_fields.puffin" \
-    "$DATA/missing_type.puffin" \
-    "$DATA/missing_offset.puffin" \
-    "$DATA/missing_length.puffin"
+for f in invalid_cardinality_non_numeric invalid_cardinality_negative
 do
-    echo "--- $(basename "$PUFFIN_FILE") ---"
-    $CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$PUFFIN_FILE', PuffinMetadata)" 2>&1 | grep -oF 'missing required field'
+    launch "$id" puffin "$DATA/$f.puffin" "property 'cardinality' must be an unsigned integer"
+    id=$((id + 1))
 done
 
-echo "--- missing_blobs.puffin ---"
-$CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$DATA/missing_blobs.puffin', PuffinMetadata)" 2>&1 | grep -oF "missing required field 'blobs'"
-
-echo "--- null_blobs.puffin ---"
-$CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$DATA/null_blobs.puffin', PuffinMetadata)" 2>&1 | grep -oF "missing required field 'blobs'"
-
-for PUFFIN_FILE in \
-    "$DATA/null_blob_entry.puffin" \
-    "$DATA/invalid_blob_entry.puffin"
+# Footer metadata validity must not depend on projecting deleted_rows.
+for f in invalid_cardinality_non_numeric invalid_cardinality_negative
 do
-    echo "--- $(basename "$PUFFIN_FILE") ---"
-    $CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$PUFFIN_FILE', PuffinMetadata)" 2>&1 | grep -oF 'must be an object'
+    launch "$id" raw_puffin "${f}_subset" "property 'cardinality' must be an unsigned integer" \
+        "SELECT referenced_data_file FROM file('$DATA/$f.puffin', Puffin)"
+    id=$((id + 1))
 done
 
-for PUFFIN_FILE in \
-    "$DATA/missing_properties.puffin" \
-    "$DATA/missing_referenced_data_file.puffin" \
-    "$DATA/missing_cardinality.puffin"
-do
-    echo "--- $(basename "$PUFFIN_FILE") ---"
-    $CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$PUFFIN_FILE', PuffinMetadata)" 2>&1 | grep -oE 'missing required (field|property)'
-done
+launch "$id" raw_puffin 'puffin_wrong_type' 'Unexpected type' \
+    "SELECT deleted_rows FROM file('$PUFFIN', Puffin, 'deleted_rows Array(String)')"
+id=$((id + 1))
+launch "$id" raw_puffin 'puffin_unknown_column' 'Unexpected column' \
+    "SELECT foo FROM file('$PUFFIN', Puffin, 'foo String')"
+id=$((id + 1))
 
-for PUFFIN_FILE in \
-    "$DATA/invalid_properties_array.puffin" \
-    "$DATA/invalid_properties_string.puffin"
-do
-    echo "--- $(basename "$PUFFIN_FILE") ---"
-    $CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$PUFFIN_FILE', PuffinMetadata)" 2>&1 | grep -oF "field 'properties' must be an object"
-done
-
-for PUFFIN_FILE in \
-    "$DATA/invalid_non_dv_properties_array.puffin" \
-    "$DATA/invalid_non_dv_properties_string.puffin"
-do
-    echo "--- $(basename "$PUFFIN_FILE") ---"
-    $CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$PUFFIN_FILE', PuffinMetadata)" 2>&1 | grep -oF "field 'properties' must be an object"
-done
-
-echo "--- dv_with_compression_codec.puffin ---"
-$CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$DATA/dv_with_compression_codec.puffin', PuffinMetadata)" 2>&1 | grep -oF "must omit 'compression-codec'"
-
-echo "--- puffin_wrong_type ---"
-$CLICKHOUSE_LOCAL -q "SELECT deleted_rows FROM file('$PUFFIN', Puffin, 'deleted_rows Array(String)')" 2>&1 | grep -oF 'Unexpected type'
-
-echo "--- puffin_unknown_column ---"
-$CLICKHOUSE_LOCAL -q "SELECT foo FROM file('$PUFFIN', Puffin, 'foo String')" 2>&1 | grep -oF 'Unexpected column'
-
-echo "--- puffin_metadata_wrong_type ---"
-$CLICKHOUSE_LOCAL -q "SELECT blob_type FROM file('$PUFFIN', PuffinMetadata, 'blob_type Int32')" 2>&1 | grep -oF 'Unexpected type'
-
-echo "--- puffin_metadata_unknown_column ---"
-$CLICKHOUSE_LOCAL -q "SELECT foo FROM file('$PUFFIN', PuffinMetadata, 'foo String')" 2>&1 | grep -oF 'Unexpected column'
+finish_puffin_errors
